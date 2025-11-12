@@ -94,10 +94,18 @@ var QueryTool = &mcp.Tool{
 	
 This is a powerful tool that allows you to query any type of data from Middleware including logs, metrics, traces, and resource information. You can filter by resource types, time ranges, apply filters, and group results. This tool provides comprehensive access to all your monitoring data.
 
+IMPORTANT - Resource Selection:
+- For logs: Always use ["log"] as the resource (no need to check get_resources first)
+- For metrics, traces, or other data types: FIRST use the get_resources tool to discover available resource types in your environment, THEN use those specific resource types in this query tool
+
+Workflow for non-log queries:
+1. Call get_resources tool to get list of available resources (e.g., ["host", "container", "service", "trace", "k8s.pod", etc.])
+2. Use the discovered resource types in this query tool's resources parameter
+
 Use cases:
-- Query logs from containers, hosts, or services
-- Retrieve metrics for specific resources
-- Get trace data for distributed systems
+- Query logs from containers, hosts, or services (use resource: ["log"])
+- Retrieve metrics for specific resources (first get resources, then use: ["host"], ["container"], ["service"], etc.)
+- Get trace data for distributed systems (first get resources, then use: ["trace"], ["trace.service"], etc.)
 - Filter data by any resource attribute
 - Group results by dimensions for aggregation
 - Query multiple data types in a single request`,
@@ -110,7 +118,7 @@ type QueryInput struct {
 type QueryInputItem struct {
 	ChartType string         `json:"chartType" jsonschema:"Type of chart/visualization. Common values: 'data_table', 'timeseries', 'bar_chart', 'pie_chart', 'line_chart',required"`
 	Columns   []string       `json:"columns" jsonschema:"Array of column names to retrieve. For logs: ['body', 'timestamp', 'level']. For metrics: metric names. For resources: attribute names,required"`
-	Resources []string       `json:"resources" jsonschema:"Array of resource types to query. Examples: ['log'], ['container'], ['host'], ['service'], ['trace'],required"`
+	Resources []string       `json:"resources" jsonschema:"Array of resource types to query. IMPORTANT: For logs, always use ['log']. For other data types (metrics, traces, etc.), FIRST use get_resources tool to discover available resources, THEN use those resource types here. Examples: ['log'] for logs, ['container'] for container data (discovered via get_resources), ['host'] for host data, ['trace'] for traces, ['k8s.pod'] for Kubernetes pods,required"`
 	TimeRange QueryTimeRange `json:"timeRange" jsonschema:"Time range for the query with from and to timestamps in milliseconds,required"`
 	Filters   map[string]any `json:"filters,omitempty" jsonschema:"Optional filters to apply. Format: {\"field.name\": {\"=\": \"value\"}} or {\"field.name\": {\"!=\": \"value\"}}"`
 	GroupBy   []string       `json:"groupBy,omitempty" jsonschema:"Optional array of field names to group results by (e.g., ['container.id', 'service.name'])"`
@@ -144,6 +152,10 @@ func HandleQuery(s ServerInterface, ctx context.Context, req *mcp.CallToolReques
 	result, err := s.Client().Query(ctx, queryReq)
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to execute query: %w", err)
+	}
+
+	if result == nil {
+		return nil, nil, fmt.Errorf("query returned nil result")
 	}
 
 	return ToTextResult(result)
