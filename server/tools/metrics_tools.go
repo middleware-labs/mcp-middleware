@@ -65,12 +65,7 @@ func HandleGetMetrics(s ServerInterface, ctx context.Context, req *mcp.CallToolR
 		return nil, nil, fmt.Errorf("failed to get metrics: %w", err)
 	}
 
-	data, err := ToMap(result)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return nil, data, nil
+	return ToTextResult(result)
 }
 
 var GetResourcesTool = &mcp.Tool{
@@ -87,9 +82,9 @@ type GetResourcesInput struct{}
 func HandleGetResources(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input GetResourcesInput) (*mcp.CallToolResult, map[string]any, error) {
 	result, err := s.Client().GetResources(ctx)
 	if err != nil {
-		// Return error with context - the MCP SDK will handle formatting
 		return nil, nil, fmt.Errorf("failed to get resources: %w", err)
 	}
 
-	return nil, map[string]any{"resources": result}, nil
+	// Return as JSON text only (no structuredContent)
+	return ToTextResult(map[string]any{"resources": result})
 }

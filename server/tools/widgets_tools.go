@@ -32,12 +32,7 @@ func HandleListWidgets(s ServerInterface, ctx context.Context, req *mcp.CallTool
 		return nil, nil, fmt.Errorf("failed to get widgets: %w", err)
 	}
 
-	data, err := ToMap(result)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return nil, data, nil
+	return ToTextResult(result)
 }
 
 var CreateWidgetTool = &mcp.Tool{
@@ -69,12 +64,7 @@ func HandleCreateWidget(s ServerInterface, ctx context.Context, req *mcp.CallToo
 		return nil, nil, fmt.Errorf("failed to create widget: %w", err)
 	}
 
-	data, err := ToMap(result)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return nil, data, nil
+	return ToTextResult(result)
 }
 
 var DeleteWidgetTool = &mcp.Tool{
@@ -94,7 +84,7 @@ func HandleDeleteWidget(s ServerInterface, ctx context.Context, req *mcp.CallToo
 		return nil, nil, fmt.Errorf("failed to delete widget: %w", err)
 	}
 
-	return nil, map[string]any{"success": true, "message": "Widget deleted successfully"}, nil
+	return ToTextResult(map[string]any{"success": true, "message": "Widget deleted successfully"})
 }
 
 var GetWidgetDataTool = &mcp.Tool{
@@ -126,12 +116,7 @@ func HandleGetWidgetData(s ServerInterface, ctx context.Context, req *mcp.CallTo
 		return nil, nil, fmt.Errorf("failed to get widget data: %w", err)
 	}
 
-	data, err := ToMap(result)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return nil, data, nil
+	return ToTextResult(result)
 }
 
 var GetMultiWidgetDataTool = &mcp.Tool{
@@ -170,17 +155,8 @@ func HandleGetMultiWidgetData(s ServerInterface, ctx context.Context, req *mcp.C
 		return nil, nil, fmt.Errorf("failed to get multi widget data: %w", err)
 	}
 
-	data := make([]map[string]any, len(result))
-	for i, r := range result {
-		m, err := ToMap(r)
-		if err != nil {
-			return nil, nil, err
-		}
-		data[i] = m
-	}
-
-	// Wrap in object as MCP requires object return types
-	return nil, map[string]any{"widgets": data}, nil
+	// Return as JSON text only (no structuredContent)
+	return ToTextResult(map[string]any{"widgets": result})
 }
 
 var UpdateWidgetLayoutsTool = &mcp.Tool{
@@ -223,5 +199,5 @@ func HandleUpdateWidgetLayouts(s ServerInterface, ctx context.Context, req *mcp.
 		return nil, nil, fmt.Errorf("failed to update widget layouts: %w", err)
 	}
 
-	return nil, map[string]any{"success": true, "message": "Widget layouts updated successfully"}, nil
+	return ToTextResult(map[string]any{"success": true, "message": "Widget layouts updated successfully"})
 }

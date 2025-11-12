@@ -7,7 +7,6 @@ import (
 	"strconv"
 )
 
-// GetWidgets retrieves a list of widgets
 func (c *Client) GetWidgets(ctx context.Context, params *GetWidgetsParams) (*Widget, error) {
 	path := "/builder/widget"
 	
@@ -31,7 +30,6 @@ func (c *Client) GetWidgets(ctx context.Context, params *GetWidgetsParams) (*Wid
 	return &result, nil
 }
 
-// CreateWidget creates or updates a widget
 func (c *Client) CreateWidget(ctx context.Context, widget *CustomWidget) (*Widget, error) {
 	var result Widget
 	if err := c.doRequest(ctx, "POST", "/builder/widget", widget, &result); err != nil {
@@ -40,13 +38,11 @@ func (c *Client) CreateWidget(ctx context.Context, widget *CustomWidget) (*Widge
 	return &result, nil
 }
 
-// DeleteWidget deletes a widget
 func (c *Client) DeleteWidget(ctx context.Context, builderID int) error {
 	path := fmt.Sprintf("/builder/widget/%d", builderID)
 	return c.doRequest(ctx, "DELETE", path, nil, nil)
 }
 
-// GetWidgetData retrieves data for a given widget
 func (c *Client) GetWidgetData(ctx context.Context, widget *CustomWidget) (*BuilderDataResponse, error) {
 	var result BuilderDataResponse
 	if err := c.doRequest(ctx, "POST", "/builder/widget/data", widget, &result); err != nil {
@@ -55,7 +51,6 @@ func (c *Client) GetWidgetData(ctx context.Context, widget *CustomWidget) (*Buil
 	return &result, nil
 }
 
-// GetMultiWidgetData retrieves data for multiple widgets
 func (c *Client) GetMultiWidgetData(ctx context.Context, widgets []CustomWidget) ([]BuilderDataResponse, error) {
 	var result []BuilderDataResponse
 	if err := c.doRequest(ctx, "POST", "/builder/widget/multi-data", widgets, &result); err != nil {
@@ -64,12 +59,10 @@ func (c *Client) GetMultiWidgetData(ctx context.Context, widgets []CustomWidget)
 	return result, nil
 }
 
-// UpdateWidgetLayouts updates widget layouts for a scope
 func (c *Client) UpdateWidgetLayouts(ctx context.Context, req *LayoutRequest) error {
 	return c.doRequest(ctx, "PUT", "/builder/widget/scope/layouts", req, nil)
 }
 
-// GetWidgetsParams contains parameters for listing widgets
 type GetWidgetsParams struct {
 	ReportID     int
 	DisplayScope string

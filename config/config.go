@@ -8,7 +8,6 @@ import (
 	"github.com/joho/godotenv"
 )
 
-// Config holds the application configuration
 type Config struct {
 	// Middleware API Configuration
 	MiddlewareAPIKey  string
@@ -25,7 +24,6 @@ type Config struct {
 	ExcludedTools map[string]bool
 }
 
-// Load loads configuration from environment variables
 func Load() (*Config, error) {
 	// Try to load .env file, but don't fail if it doesn't exist
 	_ = godotenv.Load()
@@ -63,7 +61,6 @@ func Load() (*Config, error) {
 	return cfg, nil
 }
 
-// IsToolExcluded checks if a tool is excluded
 func (c *Config) IsToolExcluded(toolName string) bool {
 	return c.ExcludedTools[toolName]
 }
@@ -74,4 +71,3 @@ func getEnvOrDefault(key, defaultValue string) string {
 	}
 	return defaultValue
 }
-

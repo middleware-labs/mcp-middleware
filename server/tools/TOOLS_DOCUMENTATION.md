@@ -411,10 +411,6 @@ Manage and analyze alert instances and statistics.
 
 ---
 
-## API Reference
-
-For complete API specifications, refer to the official [Middleware API Swagger documentation](https://app.middleware.io/swagger.json).
-
 ## Support
 
 For questions or issues:

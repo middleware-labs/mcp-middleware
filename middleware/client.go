@@ -7,18 +7,15 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 	"time"
 )
 
-// Client is the Middleware API client
 type Client struct {
 	baseURL    string
 	apiKey     string
 	httpClient *http.Client
 }
 
-// NewClient creates a new Middleware API client
 func NewClient(baseURL, apiKey string) *Client {
 	// Normalize baseURL: remove trailing slash if present
 	normalizedURL := baseURL
@@ -34,7 +31,6 @@ func NewClient(baseURL, apiKey string) *Client {
 	}
 }
 
-// doRequest performs an HTTP request with authentication
 func (c *Client) doRequest(ctx context.Context, method, path string, body any, result any) error {
 	var reqBody io.Reader
 	if body != nil {
@@ -53,14 +49,6 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any, r
 
 	req.Header.Set("ApiKey", c.apiKey)
 	req.Header.Set("Content-Type", "application/json")
-
-	// Log request details to stderr (stdio mode uses stdout for MCP protocol)
-	fmt.Fprintf(os.Stderr, "[DEBUG] API Request: %s %s\n", method, url)
-	keyPreview := c.apiKey
-	if len(keyPreview) > 10 {
-		keyPreview = keyPreview[:10] + "..."
-	}
-	fmt.Fprintf(os.Stderr, "[DEBUG] API Key: %s\n", keyPreview)
 
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
@@ -99,24 +87,14 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any, r
 	return nil
 }
 
-// ErrorResponse represents an API error response
 type ErrorResponse struct {
 	Error   string `json:"error"`
 	Success bool   `json:"success"`
 }
 
-// truncateString truncates a string to a maximum length, adding "..." if truncated
 func truncateString(s string, maxLen int) string {
 	if len(s) <= maxLen {
 		return s
 	}
 	return s[:maxLen] + "..."
-}
-
-// min returns the minimum of two integers
-func min(a, b int) int {
-	if a < b {
-		return a
-	}
-	return b
 }
