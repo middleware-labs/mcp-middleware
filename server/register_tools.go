@@ -90,6 +90,11 @@ func (s *Server) registerTools() {
 			return tools.HandleGetResources(s, ctx, req, input)
 		})
 	}
+	if !s.config.IsToolExcluded("query") {
+		mcp.AddTool(s.mcpServer, tools.QueryTool, func(ctx context.Context, req *mcp.CallToolRequest, input tools.QueryInput) (*mcp.CallToolResult, map[string]any, error) {
+			return tools.HandleQuery(s, ctx, req, input)
+		})
+	}
 
 	// Alert tools
 	if !s.config.IsToolExcluded("list_alerts") {

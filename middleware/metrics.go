@@ -19,3 +19,11 @@ func (c *Client) GetResources(ctx context.Context) ([]string, error) {
 	}
 	return result, nil
 }
+
+func (c *Client) Query(ctx context.Context, req *QueryRequest) (*QueryResponse, error) {
+	var result QueryResponse
+	if err := c.doRequest(ctx, "POST", "/query", req, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}

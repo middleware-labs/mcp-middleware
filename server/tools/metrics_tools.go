@@ -85,6 +85,66 @@ func HandleGetResources(s ServerInterface, ctx context.Context, req *mcp.CallToo
 		return nil, nil, fmt.Errorf("failed to get resources: %w", err)
 	}
 
-	// Return as JSON text only (no structuredContent)
 	return ToTextResult(map[string]any{"resources": result})
+}
+
+var QueryTool = &mcp.Tool{
+	Name: "query",
+	Description: `Execute a flexible query to retrieve logs, metrics, traces, and other data from Middleware.io.
+	
+This is a powerful tool that allows you to query any type of data from Middleware including logs, metrics, traces, and resource information. You can filter by resource types, time ranges, apply filters, and group results. This tool provides comprehensive access to all your monitoring data.
+
+Use cases:
+- Query logs from containers, hosts, or services
+- Retrieve metrics for specific resources
+- Get trace data for distributed systems
+- Filter data by any resource attribute
+- Group results by dimensions for aggregation
+- Query multiple data types in a single request`,
+}
+
+type QueryInput struct {
+	Queries []QueryInputItem `json:"queries" jsonschema:"Array of query objects to execute. Each query can target different resources and data types,required"`
+}
+
+type QueryInputItem struct {
+	ChartType string         `json:"chartType" jsonschema:"Type of chart/visualization. Common values: 'data_table', 'timeseries', 'bar_chart', 'pie_chart', 'line_chart',required"`
+	Columns   []string       `json:"columns" jsonschema:"Array of column names to retrieve. For logs: ['body', 'timestamp', 'level']. For metrics: metric names. For resources: attribute names,required"`
+	Resources []string       `json:"resources" jsonschema:"Array of resource types to query. Examples: ['log'], ['container'], ['host'], ['service'], ['trace'],required"`
+	TimeRange QueryTimeRange `json:"timeRange" jsonschema:"Time range for the query with from and to timestamps in milliseconds,required"`
+	Filters   map[string]any `json:"filters,omitempty" jsonschema:"Optional filters to apply. Format: {\"field.name\": {\"=\": \"value\"}} or {\"field.name\": {\"!=\": \"value\"}}"`
+	GroupBy   []string       `json:"groupBy,omitempty" jsonschema:"Optional array of field names to group results by (e.g., ['container.id', 'service.name'])"`
+}
+
+type QueryTimeRange struct {
+	From int64 `json:"from" jsonschema:"Start timestamp in milliseconds (Unix timestamp * 1000),required"`
+	To   int64 `json:"to" jsonschema:"End timestamp in milliseconds (Unix timestamp * 1000),required"`
+}
+
+func HandleQuery(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input QueryInput) (*mcp.CallToolResult, map[string]any, error) {
+	queries := make([]middleware.Query, len(input.Queries))
+	for i, q := range input.Queries {
+		queries[i] = middleware.Query{
+			ChartType: q.ChartType,
+			Columns:   q.Columns,
+			Resources: q.Resources,
+			TimeRange: middleware.QueryTimeRange{
+				From: q.TimeRange.From,
+				To:   q.TimeRange.To,
+			},
+			Filters: q.Filters,
+			GroupBy: q.GroupBy,
+		}
+	}
+
+	queryReq := &middleware.QueryRequest{
+		Queries: queries,
+	}
+
+	result, err := s.Client().Query(ctx, queryReq)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to execute query: %w", err)
+	}
+
+	return ToTextResult(result)
 }

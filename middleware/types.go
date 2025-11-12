@@ -249,6 +249,32 @@ type Column struct {
 	Label string `json:"label"`
 }
 
+type QueryRequest struct {
+	Queries []Query `json:"queries"`
+}
+
+type Query struct {
+	ChartType string         `json:"chartType"`
+	Columns   []string       `json:"columns"`
+	Resources []string       `json:"resources"`
+	TimeRange QueryTimeRange `json:"timeRange"`
+	Filters   map[string]any `json:"filters,omitempty"`
+	GroupBy   []string       `json:"groupBy,omitempty"`
+}
+
+type QueryTimeRange struct {
+	From int64 `json:"from"`
+	To   int64 `json:"to"`
+}
+
+type QueryResponse struct {
+	Results []QueryResult `json:"results,omitempty"`
+}
+
+type QueryResult struct {
+	Data any `json:"data,omitempty"`
+}
+
 type StatsResponse struct {
 	CountByStatus    []CountBy `json:"count_by_status"`
 	CountByTitle     []CountBy `json:"count_by_title"`
