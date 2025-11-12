@@ -2,15 +2,6 @@
 
 A robust and modular [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server for [Middleware.io](https://middleware.io) built with the [official Go SDK](https://github.com/modelcontextprotocol/go-sdk). This server enables AI assistants like Claude to interact with Middleware's observability platform for monitoring, dashboards, widgets, metrics, and alerts.
 
-## Features
-
-- 🚀 **Complete API Coverage**: Implements all major Middleware API endpoints
-- 🔧 **Modular Architecture**: Clean separation of concerns for easy extension
-- 🛡️ **Type-Safe**: Fully typed with Go structs matching Middleware API schemas
-- ⚙️ **Configurable**: Environment-based configuration with tool exclusion support
-- 📊 **Rich Toolset**: 21 tools covering dashboards, widgets, metrics, and alerts
-- 🔌 **Official SDK**: Built using the official MCP Go SDK
-
 ## Available Tools
 
 ### Dashboard Management (7 tools)
