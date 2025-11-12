@@ -39,11 +39,161 @@ A robust and modular [Model Context Protocol (MCP)](https://modelcontextprotocol
 - `create_alert` - Create a new alert
 - `get_alert_stats` - Get alert statistics
 
+## Quick Start
+
+Get up and running in 5 minutes!
+
+### Step 1: Get Your API Key
+
+1. Log in to your [Middleware.io account](https://app.middleware.io)
+2. Navigate to **Settings** → **API Keys**
+3. Click **Generate New API Key**
+4. Copy your API key and project URL
+
+### Step 2: Install
+
+```bash
+# Navigate to the project directory
+cd mcp-middleware
+
+# Install dependencies
+go mod download
+
+# Build the server
+go build -o mcp-middleware .
+```
+
+Or using Make:
+```bash
+make install
+make build
+```
+
+### Step 3: Configure
+
+Create a `.env` file:
+```bash
+cp .env.example .env
+```
+
+Edit `.env` with your credentials:
+```env
+MIDDLEWARE_API_KEY=your_api_key_here
+MIDDLEWARE_BASE_URL=https://your-project.middleware.io
+APP_MODE=stdio
+```
+
+### Step 4: Test the Server
+
+Run the server directly:
+```bash
+./mcp-middleware
+```
+
+The server will start in stdio mode. You should see:
+```
+Middleware MCP Server v1.0.0
+Connected to: https://your-project.middleware.io
+Starting MCP server in stdio mode...
+```
+
+Press `Ctrl+C` to stop.
+
+### Step 5: Connect to Claude Desktop
+
+#### For Linux/macOS:
+
+1. Open `~/.config/Claude/claude_desktop_config.json`
+2. Add the server configuration:
+
+```json
+{
+  "mcpServers": {
+    "middleware": {
+      "command": "/full/path/to/mcp-middleware/mcp-middleware",
+      "env": {
+        "MIDDLEWARE_API_KEY": "your_api_key",
+        "MIDDLEWARE_BASE_URL": "https://your-project.middleware.io"
+      }
+    }
+  }
+}
+```
+
+#### For Windows:
+
+1. Open `%APPDATA%\Claude\claude_desktop_config.json`
+2. Add the server configuration with Windows path:
+
+```json
+{
+  "mcpServers": {
+    "middleware": {
+      "command": "C:\\path\\to\\mcp-middleware\\mcp-middleware.exe",
+      "env": {
+        "MIDDLEWARE_API_KEY": "your_api_key",
+        "MIDDLEWARE_BASE_URL": "https://your-project.middleware.io"
+      }
+    }
+  }
+}
+```
+
+3. Restart Claude Desktop
+
+### Step 6: Test with MCP Inspector (Optional)
+
+Before connecting to Claude, you can test your server with the MCP Inspector:
+
+```bash
+# Requires Node.js and npx
+make inspect
+```
+
+This opens an interactive web interface where you can:
+- Test all 21 tools
+- View server logs in real-time
+- Debug inputs and outputs
+- Verify everything works
+
+### Step 7: Try It Out with Claude!
+
+Open Claude Desktop and try these commands:
+
+**List Dashboards:**
+```
+Can you list all my dashboards in Middleware?
+```
+
+**Get Resources:**
+```
+What resources are available in my Middleware account?
+```
+
+**Create a Dashboard:**
+```
+Create a new dashboard called "Production Metrics" with public visibility
+```
+
+**Get Widget Data:**
+```
+Get the data for widget with builder ID 123
+```
+
 ## Prerequisites
 
 - **Go 1.23 or later** (the project uses Go 1.23.0 with toolchain 1.24.10)
+- **Node.js and npx** (for MCP Inspector testing)
 - **Middleware.io account** with API access
 - **API Key** from [Middleware API Keys settings](https://app.middleware.io/settings/api-keys)
+
+## Transport Modes
+
+The server supports three transport modes:
+
+- **stdio** (default): Standard input/output transport for command-line usage
+- **http**: Streamable HTTP transport for web-based clients (uses `NewStreamableHTTPHandler`)
+- **sse**: Server-Sent Events transport for real-time streaming (uses `NewSSEHandler`)
 
 ## Installation
 
@@ -103,11 +253,35 @@ This is useful for creating read-only instances or restricting destructive opera
 
 ## Usage
 
-### Running the Server (stdio mode)
+### Running the Server
+
+#### Stdio Mode (Default)
 
 ```bash
 ./mcp-middleware
+# Or set explicitly
+APP_MODE=stdio ./mcp-middleware
 ```
+
+#### HTTP Mode
+
+Start the server in HTTP mode for web-based clients:
+
+```bash
+APP_MODE=http APP_HOST=localhost APP_PORT=8080 ./mcp-middleware
+```
+
+The server will start on `http://localhost:8080`. Clients can connect using the streamable HTTP transport.
+
+#### SSE Mode
+
+Start the server in SSE (Server-Sent Events) mode:
+
+```bash
+APP_MODE=sse APP_HOST=localhost APP_PORT=8080 ./mcp-middleware
+```
+
+The server will start on `http://localhost:8080` with SSE support for real-time streaming.
 
 ### Testing with MCP Inspector
 
@@ -160,39 +334,145 @@ Once connected, you can ask Claude to:
 
 ## Project Structure
 
+### Directory Layout
+
 ```
 mcp-middleware/
-├── config/          # Configuration management
-│   └── config.go    # Environment variable loading
-├── middleware/      # Middleware API client
-│   ├── client.go    # HTTP client with authentication
-│   ├── types.go     # API type definitions
-│   ├── dashboards.go # Dashboard API methods
-│   ├── widgets.go   # Widget API methods
-│   ├── metrics.go   # Metrics API methods
-│   └── alerts.go    # Alerts API methods
-├── server/                  # MCP server implementation
-│   ├── server.go           # Server initialization and lifecycle
-│   ├── register_tools.go   # Tool registration (21 tools)
-│   ├── register_resources.go # Resource registration (future)
-│   ├── register_prompts.go # Prompt registration (future)
-│   └── tools/              # MCP tool definitions
+├── config/                     # Configuration Management
+│   └── config.go              # Environment variable loading and validation
+│
+├── middleware/                 # Middleware.io API Client
+│   ├── client.go              # HTTP client with authentication
+│   ├── types.go               # API data structures (Dashboard, Widget, Alert, etc.)
+│   ├── dashboards.go          # Dashboard API endpoints
+│   ├── widgets.go             # Widget API endpoints
+│   ├── metrics.go             # Metrics API endpoints
+│   └── alerts.go              # Alert API endpoints
+│
+├── server/                     # MCP Server Implementation
+│   ├── server.go              # Server initialization and lifecycle
+│   ├── register_tools.go      # Tool registration (21 tools)
+│   ├── register_resources.go  # Resource registration (future)
+│   ├── register_prompts.go    # Prompt registration (future)
+│   └── tools/                 # MCP Tool Definitions
+│       ├── server_interface.go # Server interface for tool handlers
+│       ├── helpers.go         # Shared utility functions
 │       ├── dashboards_tools.go # Dashboard MCP tools (7 tools)
 │       ├── widgets_tools.go    # Widget MCP tools (6 tools)
 │       ├── metrics_tools.go    # Metrics MCP tools (2 tools)
-│       └── alerts_tools.go     # Alert MCP tools (3 tools)
-├── test/            # Test suite (28 tests)
-│   ├── config/      # Config tests (9 tests)
-│   ├── middleware/  # Client tests (11 tests)
-│   ├── server/      # Server tests (3 tests)
-│   ├── integration/ # Integration tests (5 tests)
-│   └── README.md    # Testing documentation
-├── main.go          # Application entry point
-├── go.mod           # Go module definition
-├── .env.example     # Example environment configuration
-├── .gitignore       # Git ignore rules
-└── README.md        # This file
+│       ├── alerts_tools.go     # Alert MCP tools (3 tools)
+│       └── TOOLS_DOCUMENTATION.md # Comprehensive tool reference
+│
+├── test/                       # Test Suite
+│   ├── config/                # Configuration tests
+│   │   └── config_test.go
+│   ├── middleware/            # API client tests
+│   │   └── client_test.go
+│   ├── server/                # Server tests
+│   │   └── server_test.go
+│   ├── integration/           # Integration tests
+│   │   └── integration_test.go
+│   └── README.md               # Test documentation
+│
+├── main.go                     # Application entry point
+├── go.mod                      # Go module definition
+├── go.sum                      # Go module checksums
+├── .env.example                # Example environment configuration
+├── .gitignore                  # Git ignore rules
+├── Makefile                    # Build and development automation
+└── README.md                   # This file
 ```
+
+### Module Responsibilities
+
+#### 1. Configuration (`config/`)
+
+**Purpose:** Centralized configuration management
+- Load environment variables from `.env` file
+- Validate required configuration
+- Provide configuration to other modules
+
+**Key Features:**
+- Support for multiple transport modes (stdio, http, sse)
+- Tool exclusion for customization
+- Default value handling
+
+#### 2. Middleware API Client (`middleware/`)
+
+**Purpose:** Abstraction layer for Middleware.io REST API
+- HTTP client with authentication
+- Type-safe API methods
+- Error handling and context support
+
+**Components:**
+- **`client.go`**: Base HTTP client, authentication, common request handling
+- **`types.go`**: Go structs matching Middleware API data models
+- **`dashboards.go`**: CRUD operations for dashboards
+- **`widgets.go`**: Widget management and data fetching
+- **`metrics.go`**: Metrics metadata and resource discovery
+- **`alerts.go`**: Alert instance management
+
+#### 3. MCP Server (`server/`)
+
+**Purpose:** Model Context Protocol server implementation
+- Register MCP tools
+- Handle tool invocations
+- Map tool calls to Middleware API
+
+**Structure:**
+- **`server.go`**: Core server setup, initialization, and lifecycle management
+- **`register_tools.go`**: Registration of all MCP tools (21 tools)
+- **`register_resources.go`**: Registration of MCP resources (prepared for future)
+- **`register_prompts.go`**: Registration of MCP prompts (prepared for future)
+- **`tools/`**: Directory containing all MCP tool definitions
+  - **`server_interface.go`**: Interface for tool handlers to access server
+  - **`helpers.go`**: Shared utility functions (e.g., ToMap, ToTextResult)
+  - **`*_tools.go`**: Tool definitions grouped by functionality
+  - **`TOOLS_DOCUMENTATION.md`**: Comprehensive documentation for all tools
+
+**MCP Features:**
+- **Tools** ✅: Functions that AI models can actively call (21 tools implemented)
+- **Resources** 🔜: Passive data sources for context (structure prepared)
+- **Prompts** 🔜: Pre-built instruction templates (structure prepared)
+
+**Tool Organization:**
+
+- **`dashboards_tools.go`** (7 tools): List, get, create, update, delete, clone dashboards, set favorites
+- **`widgets_tools.go`** (6 tools): List, create, delete widgets, get widget data, batch data, update layouts
+- **`metrics_tools.go`** (2 tools): Get metrics/filters/groupby tags, list available resources
+- **`alerts_tools.go`** (3 tools): List alerts, create alerts, get alert statistics
+
+#### 4. Testing (`test/`)
+
+**Purpose:** Comprehensive test coverage
+- Unit tests for each module
+- Integration tests for full workflows
+- HTTP mocking for isolated testing
+
+**Test Organization:**
+- `config/`: Configuration loading tests
+- `middleware/`: API client tests with httptest
+- `server/`: Server initialization tests
+- `integration/`: End-to-end workflow tests
+
+### Key Design Principles
+
+1. **Separation of Concerns**: Config, Middleware, Server, and Main are clearly separated
+2. **Type Safety**: Strongly typed structs for all API data with JSON schema validation
+3. **Testability**: Interfaces for dependency injection, HTTP mocking, context-based cancellation
+4. **Extensibility**: Easy to add new tools, tool exclusion for customization, modular architecture
+5. **Robustness**: Comprehensive error handling, context propagation, graceful shutdown, input validation
+
+### Adding New Tools
+
+To add a new MCP tool:
+
+1. **Choose appropriate file** based on functionality (dashboard/widget/metrics/alert)
+2. **Define tool and input struct** with proper JSON schema tags
+3. **Implement handler** that calls the middleware client
+4. **Register in `server/register_tools.go`** using `mcp.AddTool`
+5. **Add tests** in `test/server/`
+6. **Update** `server/tools/TOOLS_DOCUMENTATION.md`
 
 ## Development
 
@@ -239,11 +519,6 @@ make build
 # Reconnect in inspector to test changes
 ```
 
-### Adding New Tools
-
-1. Add the API method to the appropriate file in `middleware/`
-2. Define the tool and handler in the corresponding file in `server/`
-3. Register the tool in `server/server.go`'s `registerTools()` method
 
 ### Code Style
 
@@ -269,39 +544,9 @@ Contributions are welcome! Please:
 4. Push to the branch (`git push origin feature/amazing-feature`)
 5. Open a Pull Request
 
-## Troubleshooting
-
-### "MIDDLEWARE_API_KEY is required" error
-Make sure you've set the `MIDDLEWARE_API_KEY` environment variable or created a `.env` file with the correct API key.
-
-### "API error (401)" or "API error (403)"
-Your API key may be invalid or expired. Generate a new one from [Middleware Settings](https://app.middleware.io/settings/api-keys).
-
-### Claude Desktop doesn't see the server
-1. Ensure the path in `claude_desktop_config.json` is absolute
-2. Check that the binary has execute permissions (`chmod +x mcp-middleware`)
-3. Restart Claude Desktop after configuration changes
-
-### Connection timeouts
-Check that your `MIDDLEWARE_BASE_URL` is correct and accessible from your network.
-
-## References
-
-- [Model Context Protocol Documentation](https://modelcontextprotocol.io/docs/getting-started/intro)
-- [MCP Go SDK](https://github.com/modelcontextprotocol/go-sdk)
-- [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector) - Testing and debugging tool
-- [Middleware.io](https://middleware.io)
-- [Zerodha Kite MCP Server](https://github.com/zerodha/kite-mcp-server) (inspiration)
-
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Acknowledgments
-
-- Built with the [official MCP Go SDK](https://github.com/modelcontextprotocol/go-sdk)
-- Inspired by [Zerodha's Kite MCP Server](https://github.com/zerodha/kite-mcp-server)
-- Thanks to the Middleware.io team for their comprehensive API
 
 ## Support
 

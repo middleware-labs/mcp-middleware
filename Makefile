@@ -1,39 +1,32 @@
 .PHONY: build run test clean install lint fmt help
 
-# Build variables
 BINARY_NAME=mcp-middleware
 BUILD_DIR=.
 GO=go
 
-# Build the application
 build:
 	@echo "Building $(BINARY_NAME)..."
 	@$(GO) build -o $(BUILD_DIR)/$(BINARY_NAME) .
 	@echo "Build complete: $(BUILD_DIR)/$(BINARY_NAME)"
 
-# Run the application
 run: build
 	@echo "Running $(BINARY_NAME)..."
 	@./$(BINARY_NAME)
 
-# Run tests
 test:
 	@echo "Running tests..."
 	@$(GO) test -v ./test/...
 
-# Run tests with coverage
 test-coverage:
 	@echo "Running tests with coverage..."
 	@$(GO) test -v -coverprofile=coverage.out ./test/...
 	@$(GO) tool cover -html=coverage.out -o coverage.html
 	@echo "Coverage report generated: coverage.html"
 
-# Run tests with race detection
 test-race:
 	@echo "Running tests with race detection..."
 	@$(GO) test -race -v ./test/...
 
-# Run specific test package
 test-config:
 	@echo "Running config tests..."
 	@$(GO) test -v ./test/config
@@ -50,33 +43,28 @@ test-integration:
 	@echo "Running integration tests..."
 	@$(GO) test -v ./test/integration
 
-# Clean build artifacts
 clean:
 	@echo "Cleaning..."
 	@rm -f $(BINARY_NAME)
 	@rm -f coverage.out coverage.html
 	@echo "Clean complete"
 
-# Install dependencies
 install:
 	@echo "Installing dependencies..."
 	@$(GO) mod download
 	@$(GO) mod tidy
 	@echo "Dependencies installed"
 
-# Run linter (requires golangci-lint)
 lint:
 	@echo "Running linter..."
 	@which golangci-lint > /dev/null || (echo "golangci-lint not found. Install it from https://golangci-lint.run/usage/install/" && exit 1)
 	@golangci-lint run ./...
 
-# Format code
 fmt:
 	@echo "Formatting code..."
 	@$(GO) fmt ./...
 	@echo "Format complete"
 
-# Initialize environment
 init-env:
 	@if [ ! -f .env ]; then \
 		echo "Creating .env file from .env.example..."; \
@@ -86,7 +74,6 @@ init-env:
 		echo ".env file already exists"; \
 	fi
 
-# Check environment variables are properly configured
 check-env:
 	@if [ ! -f .env ]; then \
 		echo "❌ Error: .env file not found!"; \
@@ -104,7 +91,6 @@ check-env:
 	fi
 	@echo "✓ Environment configuration is valid"
 
-# Build for multiple platforms
 build-all:
 	@echo "Building for multiple platforms..."
 	@GOOS=linux GOARCH=amd64 $(GO) build -o $(BUILD_DIR)/$(BINARY_NAME)-linux-amd64 .
@@ -113,12 +99,10 @@ build-all:
 	@GOOS=windows GOARCH=amd64 $(GO) build -o $(BUILD_DIR)/$(BINARY_NAME)-windows-amd64.exe .
 	@echo "Multi-platform build complete"
 
-# Stop running MCP Inspector
 stop-inspect:
 	@echo "🛑 Stopping MCP Inspector..."
 	@-pkill -f "modelcontextprotocol/inspector" 2>/dev/null && echo "✓ Inspector stopped" || echo "✓ No inspector running"
 
-# Run MCP Inspector for testing and debugging
 inspect: build check-env
 	@echo "🔍 Starting MCP Inspector..."
 	@-pkill -f "modelcontextprotocol/inspector" 2>/dev/null || true
@@ -142,10 +126,8 @@ inspect: build check-env
 			./$(BINARY_NAME) \
 	'
 
-# Run inspector with environment variables loaded from .env (same as inspect)
 inspect-env: inspect
 
-# Show help
 help:
 	@echo "Available targets:"
 	@echo "  build         - Build the application"

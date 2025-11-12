@@ -7,10 +7,9 @@ import (
 	"strconv"
 )
 
-// GetDashboards retrieves a list of dashboards/reports
 func (c *Client) GetDashboards(ctx context.Context, params *GetDashboardsParams) (*ReportListResponse, error) {
 	path := "/builder/report"
-	
+
 	if params != nil {
 		query := url.Values{}
 		if params.Limit > 0 {
@@ -43,10 +42,9 @@ func (c *Client) GetDashboards(ctx context.Context, params *GetDashboardsParams)
 	return &result, nil
 }
 
-// GetDashboardByKey retrieves a specific dashboard by its key
 func (c *Client) GetDashboardByKey(ctx context.Context, reportKey string) (*ReportListResponse, error) {
 	path := fmt.Sprintf("/builder/report/%s", reportKey)
-	
+
 	var result ReportListResponse
 	if err := c.doRequest(ctx, "GET", path, nil, &result); err != nil {
 		return nil, err
@@ -54,7 +52,6 @@ func (c *Client) GetDashboardByKey(ctx context.Context, reportKey string) (*Repo
 	return &result, nil
 }
 
-// CreateDashboard creates a new dashboard
 func (c *Client) CreateDashboard(ctx context.Context, req *UpsertReportRequest) (*Report, error) {
 	var result Report
 	if err := c.doRequest(ctx, "POST", "/builder/report", req, &result); err != nil {
@@ -63,7 +60,6 @@ func (c *Client) CreateDashboard(ctx context.Context, req *UpsertReportRequest) 
 	return &result, nil
 }
 
-// UpdateDashboard updates an existing dashboard
 func (c *Client) UpdateDashboard(ctx context.Context, id int, req *UpsertReportRequest) (*Report, error) {
 	path := fmt.Sprintf("/builder/report/%d", id)
 	var result Report
@@ -73,13 +69,11 @@ func (c *Client) UpdateDashboard(ctx context.Context, id int, req *UpsertReportR
 	return &result, nil
 }
 
-// DeleteDashboard deletes a dashboard
 func (c *Client) DeleteDashboard(ctx context.Context, id int) error {
 	path := fmt.Sprintf("/builder/report/%d", id)
 	return c.doRequest(ctx, "DELETE", path, nil, nil)
 }
 
-// CloneDashboard clones an existing dashboard
 func (c *Client) CloneDashboard(ctx context.Context, req *UpsertReportRequest) (*Report, error) {
 	var result Report
 	if err := c.doRequest(ctx, "POST", "/builder/report/clone", req, &result); err != nil {
@@ -88,13 +82,11 @@ func (c *Client) CloneDashboard(ctx context.Context, req *UpsertReportRequest) (
 	return &result, nil
 }
 
-// SetDashboardFavorite marks a dashboard as favorite or unfavorite
 func (c *Client) SetDashboardFavorite(ctx context.Context, reportID int, favorite bool) error {
 	path := fmt.Sprintf("/builder/report/favourite/%d/%t", reportID, favorite)
 	return c.doRequest(ctx, "GET", path, nil, nil)
 }
 
-// GetDashboardsParams contains parameters for listing dashboards
 type GetDashboardsParams struct {
 	Limit        int
 	Offset       int
@@ -103,4 +95,3 @@ type GetDashboardsParams struct {
 	DisplayScope string
 	Sort         string
 }
-

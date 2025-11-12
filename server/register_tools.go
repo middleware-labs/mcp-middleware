@@ -8,9 +8,6 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// registerTools registers all available MCP tools with the server.
-// This function is called during server initialization to set up all tool handlers.
-// Tools are functions that AI models can actively call to perform actions.
 // See: https://modelcontextprotocol.io/docs/learn/server-concepts#tools
 func (s *Server) registerTools() {
 	// Dashboard tools
@@ -111,4 +108,3 @@ func (s *Server) registerTools() {
 		})
 	}
 }
-

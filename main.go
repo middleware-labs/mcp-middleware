@@ -9,6 +9,7 @@ import (
 
 	"mcp-middleware/config"
 	"mcp-middleware/server"
+
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
@@ -31,31 +32,29 @@ func main() {
 		cancel()
 	}()
 
-	var transport mcp.Transport
-	switch cfg.AppMode {
-	case "stdio":
-		transport = &mcp.StdioTransport{}
-		log.Println("Starting MCP server in stdio mode...")
-	case "http":
-		// TODO: Implement HTTP transport
-		log.Println("HTTP mode not yet fully implemented, using stdio mode...")
-		transport = &mcp.StdioTransport{}
-	case "sse":
-		// TODO: Implement SSE transport
-		log.Println("SSE mode not yet fully implemented, using stdio mode...")
-		transport = &mcp.StdioTransport{}
-	default:
-		log.Fatalf("Invalid APP_MODE: %s", cfg.AppMode)
-	}
-
 	log.Printf("Middleware MCP Server v1.0.0")
 	log.Printf("Connected to: %s", cfg.MiddlewareBaseURL)
 	if len(cfg.ExcludedTools) > 0 {
 		log.Printf("Excluded tools: %v", getExcludedToolsList(cfg))
 	}
-	
-	if err := srv.Run(ctx, transport); err != nil {
-		log.Fatalf("Server error: %v", err)
+
+	switch cfg.AppMode {
+	case "stdio":
+		transport := &mcp.StdioTransport{}
+		log.Println("Starting MCP server in stdio mode...")
+		if err := srv.Run(ctx, transport); err != nil {
+			log.Fatalf("Server error: %v", err)
+		}
+	case "http":
+		if err := srv.RunHTTPMode(ctx, cfg); err != nil {
+			log.Fatalf("HTTP server error: %v", err)
+		}
+	case "sse":
+		if err := srv.RunSSEMode(ctx, cfg); err != nil {
+			log.Fatalf("SSE server error: %v", err)
+		}
+	default:
+		log.Fatalf("Invalid APP_MODE: %s", cfg.AppMode)
 	}
 }
 
@@ -66,4 +65,3 @@ func getExcludedToolsList(cfg *config.Config) []string {
 	}
 	return tools
 }
-

@@ -32,12 +32,7 @@ func HandleListAlerts(s ServerInterface, ctx context.Context, req *mcp.CallToolR
 		return nil, nil, fmt.Errorf("failed to get alerts: %w", err)
 	}
 
-	data, err := ToMap(result)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return nil, data, nil
+	return ToTextResult(result)
 }
 
 var CreateAlertTool = &mcp.Tool{
@@ -85,12 +80,7 @@ func HandleCreateAlert(s ServerInterface, ctx context.Context, req *mcp.CallTool
 		return nil, nil, fmt.Errorf("failed to create alert: %w", err)
 	}
 
-	data, err := ToMap(result)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return nil, data, nil
+	return ToTextResult(result)
 }
 
 var GetAlertStatsTool = &mcp.Tool{
@@ -115,10 +105,5 @@ func HandleGetAlertStats(s ServerInterface, ctx context.Context, req *mcp.CallTo
 		return nil, nil, fmt.Errorf("failed to get alert stats: %w", err)
 	}
 
-	data, err := ToMap(result)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return nil, data, nil
+	return ToTextResult(result)
 }

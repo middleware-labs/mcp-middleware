@@ -8,7 +8,6 @@ import (
 	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-// ListDashboardsTool is the MCP tool definition for listing dashboards
 var ListDashboardsTool = &mcp.Tool{
 	Name: "list_dashboards",
 	Description: `Get a list of dashboards (i.e. reports) with advanced filtering and pagination support.
@@ -24,7 +23,6 @@ type ListDashboardsInput struct {
 	DisplayScope string `json:"display_scope,omitempty" jsonschema:"Filter dashboards by comma-separated list of display scopes"`
 }
 
-// HandleListDashboards handles the list_dashboards tool invocation
 func HandleListDashboards(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input ListDashboardsInput) (*mcp.CallToolResult, map[string]any, error) {
 	params := &middleware.GetDashboardsParams{
 		Limit:        input.Limit,
@@ -39,15 +37,9 @@ func HandleListDashboards(s ServerInterface, ctx context.Context, req *mcp.CallT
 		return nil, nil, err
 	}
 
-	data, err := ToMap(result)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return nil, data, nil
+	return ToTextResult(result)
 }
 
-// GetDashboardTool is the MCP tool definition for getting a dashboard
 var GetDashboardTool = &mcp.Tool{
 	Name: "get_dashboard",
 	Description: `Get detailed information about a specific dashboard by its unique key.
@@ -59,22 +51,15 @@ type GetDashboardInput struct {
 	ReportKey string `json:"report_key" jsonschema:"The unique key identifier of the dashboard to retrieve,required"`
 }
 
-// HandleGetDashboard handles the get_dashboard tool invocation
 func HandleGetDashboard(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input GetDashboardInput) (*mcp.CallToolResult, map[string]any, error) {
 	result, err := s.Client().GetDashboardByKey(ctx, input.ReportKey)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	data, err := ToMap(result)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return nil, data, nil
+	return ToTextResult(result)
 }
 
-// CreateDashboardTool is the MCP tool definition for creating a dashboard
 var CreateDashboardTool = &mcp.Tool{
 	Name: "create_dashboard",
 	Description: `Create a new custom dashboard in Middleware.io.
@@ -90,7 +75,6 @@ type CreateDashboardInput struct {
 	Key          string `json:"key,omitempty" jsonschema:"Optional unique key identifier for the dashboard. If not provided, will be auto-generated"`
 }
 
-// HandleCreateDashboard handles the create_dashboard tool invocation
 func HandleCreateDashboard(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input CreateDashboardInput) (*mcp.CallToolResult, map[string]any, error) {
 	dashboardReq := &middleware.UpsertReportRequest{
 		Label:        input.Label,
@@ -105,15 +89,9 @@ func HandleCreateDashboard(s ServerInterface, ctx context.Context, req *mcp.Call
 		return nil, nil, err
 	}
 
-	data, err := ToMap(result)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return nil, data, nil
+	return ToTextResult(result)
 }
 
-// UpdateDashboardTool is the MCP tool definition for updating a dashboard
 var UpdateDashboardTool = &mcp.Tool{
 	Name: "update_dashboard",
 	Description: `Update an existing dashboard's configuration and metadata.
@@ -130,7 +108,6 @@ type UpdateDashboardInput struct {
 	Key          string `json:"key,omitempty" jsonschema:"Updated unique key identifier. Must be unique across all dashboards"`
 }
 
-// HandleUpdateDashboard handles the update_dashboard tool invocation
 func HandleUpdateDashboard(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input UpdateDashboardInput) (*mcp.CallToolResult, map[string]any, error) {
 	dashboardReq := &middleware.UpsertReportRequest{
 		ID:           input.ID,
@@ -146,15 +123,9 @@ func HandleUpdateDashboard(s ServerInterface, ctx context.Context, req *mcp.Call
 		return nil, nil, err
 	}
 
-	data, err := ToMap(result)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return nil, data, nil
+	return ToTextResult(result)
 }
 
-// DeleteDashboardTool is the MCP tool definition for deleting a dashboard
 var DeleteDashboardTool = &mcp.Tool{
 	Name: "delete_dashboard",
 	Description: `Permanently delete a dashboard and all its widgets.
@@ -166,17 +137,15 @@ type DeleteDashboardInput struct {
 	ID int `json:"id" jsonschema:"The numeric ID of the dashboard to delete permanently,required"`
 }
 
-// HandleDeleteDashboard handles the delete_dashboard tool invocation
 func HandleDeleteDashboard(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input DeleteDashboardInput) (*mcp.CallToolResult, map[string]any, error) {
 	err := s.Client().DeleteDashboard(ctx, input.ID)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return nil, map[string]any{"success": true, "message": "Dashboard deleted successfully"}, nil
+	return ToTextResult(map[string]any{"success": true, "message": "Dashboard deleted successfully"})
 }
 
-// CloneDashboardTool is the MCP tool definition for cloning a dashboard
 var CloneDashboardTool = &mcp.Tool{
 	Name: "clone_dashboard",
 	Description: `Create a copy of an existing dashboard with all its widgets and configuration.
@@ -192,7 +161,6 @@ type CloneDashboardInput struct {
 	SourceKey    string `json:"source_key,omitempty" jsonschema:"The unique key of the source dashboard to clone from"`
 }
 
-// HandleCloneDashboard handles the clone_dashboard tool invocation
 func HandleCloneDashboard(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input CloneDashboardInput) (*mcp.CallToolResult, map[string]any, error) {
 	dashboardReq := &middleware.UpsertReportRequest{
 		Label:        input.Label,
@@ -207,15 +175,9 @@ func HandleCloneDashboard(s ServerInterface, ctx context.Context, req *mcp.CallT
 		return nil, nil, err
 	}
 
-	data, err := ToMap(result)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return nil, data, nil
+	return ToTextResult(result)
 }
 
-// SetDashboardFavoriteTool is the MCP tool definition for setting dashboard favorite
 var SetDashboardFavoriteTool = &mcp.Tool{
 	Name: "set_dashboard_favorite",
 	Description: `Mark a dashboard as favorite or remove it from favorites.
@@ -228,12 +190,11 @@ type SetDashboardFavoriteInput struct {
 	Favorite bool `json:"favorite" jsonschema:"Set to true to add dashboard to favorites, false to remove from favorites,required"`
 }
 
-// HandleSetDashboardFavorite handles the set_dashboard_favorite tool invocation
 func HandleSetDashboardFavorite(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input SetDashboardFavoriteInput) (*mcp.CallToolResult, map[string]any, error) {
 	err := s.Client().SetDashboardFavorite(ctx, input.ReportID, input.Favorite)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return nil, map[string]any{"success": true, "message": "Dashboard favorite status updated"}, nil
+	return ToTextResult(map[string]any{"success": true, "message": "Dashboard favorite status updated"})
 }
