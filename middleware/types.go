@@ -76,7 +76,7 @@ type CustomWidget struct {
 	Key                     string              `json:"key,omitempty"`
 	Label                   string              `json:"label,omitempty"`
 	Description             string              `json:"description,omitempty"`
-	BuilderConfig           any                 `json:"builderConfig,omitempty"`
+	BuilderConfig           []BuilderConfigItem `json:"builderConfig,omitempty"`
 	BuilderMetaData         *WidgetMetaData     `json:"builderMetaData,omitempty"`
 	BuilderViewOptions      *BuilderViewOptions `json:"builderViewOptions,omitempty"`
 	Layout                  *LayoutItem         `json:"layout,omitempty"`
@@ -86,6 +86,10 @@ type CustomWidget struct {
 	UseV2                   bool                `json:"useV2,omitempty"`
 	KeepOldData             bool                `json:"keepOldData,omitempty"`
 	ReturnOnlyFormulaResult bool                `json:"returnOnlyFormulaResult,omitempty"`
+	IsClone                 bool                `json:"isClone,omitempty"`
+	Category                string              `json:"category,omitempty"`
+	Formulas                []any               `json:"formulas,omitempty"`
+	DontRefreshData         bool                `json:"dontRefreshData,omitempty"`
 }
 
 type WidgetMetaData struct {
@@ -108,9 +112,10 @@ type WidgetMetaData struct {
 }
 
 type BuilderViewOptions struct {
-	DisplayScope string      `json:"displayScope,omitempty"`
-	Report       *ReportView `json:"report,omitempty"`
-	Resource     *Resource   `json:"resource,omitempty"`
+	DisplayScope    string      `json:"displayScope,omitempty"`
+	Report          *ReportView `json:"report,omitempty"`
+	Resource        *Resource   `json:"resource,omitempty"`
+	DisableUserEdit bool        `json:"disableUserEdit,omitempty"`
 }
 
 type ReportView struct {
@@ -298,4 +303,65 @@ type CountBy struct {
 	Status    int     `json:"status"`
 	Value     float64 `json:"value"`
 	Timestamp string  `json:"timestamp"`
+}
+
+type BuilderConfigItem struct {
+	With           []BuilderConfigWith    `json:"with,omitempty"`
+	Columns        []string               `json:"columns,omitempty"`
+	Source         *BuilderConfigSource   `json:"source,omitempty"`
+	ID             string                 `json:"id,omitempty"`
+	MetaData       *BuilderConfigMetaData `json:"meta_data,omitempty"`
+	MetricMetadata *MetricMetadata        `json:"metricMetadata,omitempty"`
+	Key            string                 `json:"key,omitempty"`
+}
+
+type BuilderConfigWith struct {
+	Key   BuilderConfigWithKey `json:"key" jsonschema:"The filter/groupby key. Must be either 'ATTRIBUTE_FILTER' for filtering or 'SELECT_DATA_BY' for group by,enum=ATTRIBUTE_FILTER|SELECT_DATA_BY"`
+	Value any                  `json:"value" jsonschema:"The filter/groupby value. For ATTRIBUTE_FILTER: object with 'and' or 'or' arrays containing filter conditions (e.g., {\"and\": [{\"host.id\": {\"=\": \"ai-team2\"}}, {\"host.name\": {\"LIKE\": \"%ai%\"}}]}). For SELECT_DATA_BY: array of attribute names (e.g., [\"host.cpu.model.id\"])"`
+	IsArg bool                 `json:"is_arg" jsonschema:"Whether this is an argument (typically true)"`
+}
+
+type BuilderConfigWithKey string
+
+const (
+	BuilderConfigWithKeyAttributeFilter BuilderConfigWithKey = "ATTRIBUTE_FILTER"
+	BuilderConfigWithKeySelectDataBy    BuilderConfigWithKey = "SELECT_DATA_BY"
+)
+
+type AttributeFilterValue struct {
+	And []map[string]map[string]string `json:"and,omitempty" jsonschema:"Array of filter conditions combined with AND logic. Each item is an object with attribute name as key and operator object as value (e.g., {\"host.id\": {\"=\": \"ai-team2\"}})"`
+	Or  []map[string]map[string]string `json:"or,omitempty" jsonschema:"Array of filter conditions combined with OR logic. Each item is an object with attribute name as key and operator object as value (e.g., {\"host.name\": {\"LIKE\": \"%ai%\"}})"`
+}
+
+type BuilderConfigSource struct {
+	Name      string `json:"name,omitempty"`
+	Alias     string `json:"alias,omitempty"`
+	DatasetID *int   `json:"dataset_id,omitempty"`
+}
+
+type BuilderConfigMetaData struct {
+	MetricTypes map[string]int `json:"metricTypes,omitempty"`
+}
+
+type MetricMetadata struct {
+	Attributes map[string]MetricAttribute `json:"attributes,omitempty"`
+	Config     *MetricConfig              `json:"config,omitempty"`
+	Label      string                     `json:"label,omitempty"`
+	Name       string                     `json:"name,omitempty"`
+	Resource   string                     `json:"resource,omitempty"`
+	Type       int                        `json:"type,omitempty"`
+}
+
+type MetricAttribute struct {
+	Count        int      `json:"count,omitempty"`
+	Input        int      `json:"input,omitempty"`
+	InputLen     int      `json:"inputLen,omitempty"`
+	ResourceType string   `json:"resource_type,omitempty"`
+	Type         int      `json:"type,omitempty"`
+	Values       []string `json:"values,omitempty"`
+}
+
+type MetricConfig struct {
+	Config any    `json:"config,omitempty"`
+	Type   string `json:"type,omitempty"`
 }
