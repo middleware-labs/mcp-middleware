@@ -143,7 +143,7 @@ make inspect
 ```
 
 This opens an interactive web interface where you can:
-- Test all 22 tools
+- Test all 19 tools
 - View server logs in real-time
 - Debug inputs and outputs
 - Verify everything works
@@ -288,7 +288,7 @@ make inspect-env
 ```
 
 The inspector will open in your browser and connect to your server, allowing you to:
-- Test all 22 tools interactively
+- Test all 19 tools interactively
 - View real-time server logs and notifications
 - Debug tool inputs and outputs
 - Verify tool schemas and descriptions
@@ -343,7 +343,7 @@ mcp-middleware/
 │
 ├── server/                     # MCP Server Implementation
 │   ├── server.go              # Server initialization and lifecycle
-│   ├── register_tools.go      # Tool registration (22 tools)
+│   ├── register_tools.go      # Tool registration (19 tools)
 │   ├── register_resources.go  # Resource registration (future)
 │   ├── register_prompts.go    # Prompt registration (future)
 │   └── tools/                 # MCP Tool Definitions
@@ -351,7 +351,7 @@ mcp-middleware/
 │       ├── helpers.go         # Shared utility functions
 │       ├── dashboards_tools.go # Dashboard MCP tools (7 tools)
 │       ├── widgets_tools.go    # Widget MCP tools (6 tools)
-│       ├── metrics_tools.go    # Metrics MCP tools (2 tools)
+│       ├── metrics_tools.go    # Metrics MCP tools (3 tools)
 │       ├── alerts_tools.go     # Alert MCP tools (3 tools)
 │       └── TOOLS_DOCUMENTATION.md # Comprehensive tool reference
 │
@@ -413,7 +413,7 @@ mcp-middleware/
 
 **Structure:**
 - **`server.go`**: Core server setup, initialization, and lifecycle management
-- **`register_tools.go`**: Registration of all MCP tools (22 tools)
+- **`register_tools.go`**: Registration of all MCP tools (19 tools)
 - **`register_resources.go`**: Registration of MCP resources (prepared for future)
 - **`register_prompts.go`**: Registration of MCP prompts (prepared for future)
 - **`tools/`**: Directory containing all MCP tool definitions
@@ -423,7 +423,7 @@ mcp-middleware/
   - **`TOOLS_DOCUMENTATION.md`**: Comprehensive documentation for all tools
 
 **MCP Features:**
-- **Tools** ✅: Functions that AI models can actively call (22 tools implemented)
+- **Tools** ✅: Functions that AI models can actively call (19 tools implemented)
 - **Resources** 🔜: Passive data sources for context (structure prepared)
 - **Prompts** 🔜: Pre-built instruction templates (structure prepared)
 

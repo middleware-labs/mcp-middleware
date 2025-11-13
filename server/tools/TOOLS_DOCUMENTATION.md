@@ -1,6 +1,6 @@
 # MCP Tools Documentation
 
-This document provides comprehensive information about all 21 MCP tools available in the Middleware.io MCP server. Each tool is documented with detailed descriptions and parameter information based on the [official Middleware API](https://app.middleware.io/swagger.json).
+This document provides comprehensive information about all 19 MCP tools available in the Middleware.io MCP server. Each tool is documented with detailed descriptions and parameter information based on the [official Middleware API](https://app.middleware.io/swagger.json).
 
 ## Overview
 
@@ -14,8 +14,8 @@ Manage custom dashboards for organizing monitoring visualizations.
 ### 📈 Widget Tools (6 tools)
 Create and manage visualization widgets (charts, graphs, tables) within dashboards.
 
-### 📉 Metrics Tools (2 tools)
-Query available metrics, resources, and metadata for building monitoring queries.
+### 📉 Metrics Tools (3 tools)
+Query available metrics, resources, and metadata for building monitoring queries. Execute flexible queries to retrieve logs, metrics, traces, and other data.
 
 ### 🚨 Alert Tools (3 tools)
 Manage and analyze alert instances and statistics.
@@ -313,9 +313,44 @@ Manage and analyze alert instances and statistics.
 
 ---
 
+### 16. `query`
+**Purpose:** Execute a flexible query to retrieve logs, metrics, traces, and other data from Middleware.io.
+
+**Description:** This is a powerful tool that allows you to query any type of data from Middleware including logs, metrics, traces, and resource information. You can filter by resource types, time ranges, apply filters, and group results. This tool provides comprehensive access to all your monitoring data.
+
+**IMPORTANT - Resource Selection:**
+- For logs: Always use `["log"]` as the resource (no need to check get_resources first)
+- For metrics, traces, or other data types: FIRST use the `get_resources` tool to discover available resource types in your environment, THEN use those specific resource types in this query tool
+
+**Workflow for non-log queries:**
+1. Call `get_resources` tool to get list of available resources (e.g., `["host", "container", "service", "trace", "k8s.pod", etc.]`)
+2. Use the discovered resource types in this query tool's `resources` parameter
+
+**Parameters:**
+- `queries` (array of objects, **required**): Array of query objects to execute. Each query can target different resources and data types
+  - Each query object contains:
+    - `chartType` (string, **required**): Type of chart/visualization. Common values: 'data_table', 'timeseries', 'bar_chart', 'pie_chart', 'line_chart'
+    - `columns` (array of strings, **required**): Array of column names to retrieve. For logs: `['body', 'timestamp', 'level']`. For metrics: metric names. For resources: attribute names
+    - `resources` (array of strings, **required**): Array of resource types to query. IMPORTANT: For logs, always use `['log']`. For other data types (metrics, traces, etc.), FIRST use `get_resources` tool to discover available resources, THEN use those resource types here. Examples: `['log']` for logs, `['container']` for container data (discovered via get_resources), `['host']` for host data, `['trace']` for traces, `['k8s.pod']` for Kubernetes pods
+    - `timeRange` (object, **required**): Time range for the query with from and to timestamps in milliseconds
+      - `from` (integer, **required**): Start timestamp in milliseconds (Unix timestamp * 1000)
+      - `to` (integer, **required**): End timestamp in milliseconds (Unix timestamp * 1000)
+    - `filters` (object, optional): Optional filters to apply. Format: `{"field.name": {"=": "value"}}` or `{"field.name": {"!=": "value"}}`
+    - `groupBy` (array of strings, optional): Optional array of field names to group results by (e.g., `['container.id', 'service.name']`)
+
+**Example Use Cases:**
+- Query logs from containers, hosts, or services (use resource: `["log"]`)
+- Retrieve metrics for specific resources (first get resources, then use: `["host"]`, `["container"]`, `["service"]`, etc.)
+- Get trace data for distributed systems (first get resources, then use: `["trace"]`, `["trace.service"]`, etc.)
+- Filter data by any resource attribute
+- Group results by dimensions for aggregation
+- Query multiple data types in a single request
+
+---
+
 ## Alert Tools
 
-### 16. `list_alerts`
+### 17. `list_alerts`
 **Purpose:** Get a list of triggered alerts for a specific alert rule with pagination and sorting.
 
 **Description:** This tool retrieves all alert instances that have been triggered for a specific alert rule. Each alert instance represents a time when the alert condition was met. Use this to review alert history, analyze alert patterns, or investigate recent incidents. Results can be paginated and ordered by various fields.
@@ -332,7 +367,7 @@ Manage and analyze alert instances and statistics.
 
 ---
 
-### 17. `create_alert`
+### 18. `create_alert`
 **Purpose:** Manually create a new alert instance for a specific alert rule.
 
 **Description:** This tool allows you to programmatically create alert instances, typically used for custom alerting logic or integrations with external monitoring systems. The alert will be associated with an existing alert rule and will appear in the alerts list and trigger configured notification channels.
@@ -360,7 +395,7 @@ Manage and analyze alert instances and statistics.
 
 ---
 
-### 18. `get_alert_stats`
+### 19. `get_alert_stats`
 **Purpose:** Get aggregated statistics and metrics for alerts of a specific rule.
 
 **Description:** This tool provides statistical analysis of alert history including counts by status (OK, Warning, Critical), counts by alert title, and time series data showing alert trends over time. Use this to understand alert patterns, identify frequently triggered alerts, and analyze alert distribution.
