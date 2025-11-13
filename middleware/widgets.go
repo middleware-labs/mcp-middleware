@@ -7,9 +7,9 @@ import (
 	"strconv"
 )
 
-func (c *Client) GetWidgets(ctx context.Context, params *GetWidgetsParams) (*Widget, error) {
+func (c *Client) GetWidgets(ctx context.Context, params *GetWidgetsParams) ([]Widget, error) {
 	path := "/builder/widget"
-	
+
 	if params != nil {
 		query := url.Values{}
 		if params.ReportID > 0 {
@@ -23,11 +23,11 @@ func (c *Client) GetWidgets(ctx context.Context, params *GetWidgetsParams) (*Wid
 		}
 	}
 
-	var result Widget
+	var result []Widget
 	if err := c.doRequest(ctx, "GET", path, nil, &result); err != nil {
 		return nil, err
 	}
-	return &result, nil
+	return result, nil
 }
 
 func (c *Client) CreateWidget(ctx context.Context, widget *CustomWidget) (*Widget, error) {
@@ -67,4 +67,3 @@ type GetWidgetsParams struct {
 	ReportID     int
 	DisplayScope string
 }
-

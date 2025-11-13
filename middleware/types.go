@@ -42,21 +42,21 @@ type UpsertReportRequest struct {
 
 // Widget types
 type Widget struct {
-	ID           int              `json:"id,omitempty"`
-	Key          string           `json:"key,omitempty"`
-	Label        string           `json:"label,omitempty"`
-	Config       any              `json:"config,omitempty"`
-	MetaData     any              `json:"meta_data,omitempty"`
-	Scope        *WidgetScope     `json:"scope,omitempty"`
-	Visibility   string           `json:"visibility,omitempty"`
-	Status       string           `json:"status,omitempty"`
-	AccountID    int              `json:"account_id,omitempty"`
-	ProjectID    int              `json:"project_id,omitempty"`
-	UserID       int              `json:"user_id,omitempty"`
-	WidgetAppID  int              `json:"widget_app_id,omitempty"`
-	DatasetID    int              `json:"dataset_id,omitempty"`
-	CreatedAt    string           `json:"created_at,omitempty"`
-	UpdatedAt    string           `json:"updated_at,omitempty"`
+	ID          int          `json:"id,omitempty"`
+	Key         string       `json:"key,omitempty"`
+	Label       string       `json:"label,omitempty"`
+	Config      any          `json:"config,omitempty"`
+	MetaData    any          `json:"meta_data,omitempty"`
+	Scope       *WidgetScope `json:"scope,omitempty"`
+	Visibility  string       `json:"visibility,omitempty"`
+	Status      string       `json:"status,omitempty"`
+	AccountID   int          `json:"account_id,omitempty"`
+	ProjectID   int          `json:"project_id,omitempty"`
+	UserID      int          `json:"user_id,omitempty"`
+	WidgetAppID int          `json:"widget_app_id,omitempty"`
+	DatasetID   int          `json:"dataset_id,omitempty"`
+	CreatedAt   string       `json:"created_at,omitempty"`
+	UpdatedAt   string       `json:"updated_at,omitempty"`
 }
 
 type WidgetScope struct {
@@ -72,45 +72,50 @@ type WidgetScope struct {
 }
 
 type CustomWidget struct {
-	BuilderID           int                 `json:"builderId,omitempty"`
-	Key                 string              `json:"key,omitempty"`
-	Label               string              `json:"label,omitempty"`
-	Description         string              `json:"description,omitempty"`
-	BuilderConfig       any                 `json:"builderConfig,omitempty"`
-	BuilderMetaData     *WidgetMetaData     `json:"builderMetaData,omitempty"`
-	BuilderViewOptions  *BuilderViewOptions `json:"builderViewOptions,omitempty"`
-	Layout              *LayoutItem         `json:"layout,omitempty"`
-	Params              []RequestParam      `json:"params,omitempty"`
-	ScopeID             int                 `json:"scopeId,omitempty"`
-	WidgetAppID         int                 `json:"widgetAppId,omitempty"`
-	UseV2               bool                `json:"useV2,omitempty"`
-	KeepOldData         bool                `json:"keepOldData,omitempty"`
-	ReturnOnlyFormulaResult bool            `json:"returnOnlyFormulaResult,omitempty"`
+	BuilderID               int                 `json:"builderId,omitempty"`
+	Key                     string              `json:"key,omitempty"`
+	Label                   string              `json:"label,omitempty"`
+	Description             string              `json:"description,omitempty"`
+	BuilderConfig           []BuilderConfigItem `json:"builderConfig,omitempty"`
+	BuilderMetaData         *WidgetMetaData     `json:"builderMetaData,omitempty"`
+	BuilderViewOptions      *BuilderViewOptions `json:"builderViewOptions,omitempty"`
+	Layout                  *LayoutItem         `json:"layout,omitempty"`
+	Params                  []RequestParam      `json:"params,omitempty"`
+	ScopeID                 int                 `json:"scopeId,omitempty"`
+	WidgetAppID             int                 `json:"widgetAppId,omitempty"`
+	UseV2                   bool                `json:"useV2,omitempty"`
+	KeepOldData             bool                `json:"keepOldData,omitempty"`
+	ReturnOnlyFormulaResult bool                `json:"returnOnlyFormulaResult,omitempty"`
+	IsClone                 bool                `json:"isClone,omitempty"`
+	Category                string              `json:"category,omitempty"`
+	Formulas                []any               `json:"formulas,omitempty"`
+	DontRefreshData         bool                `json:"dontRefreshData,omitempty"`
 }
 
 type WidgetMetaData struct {
-	ChartType               string   `json:"chartType,omitempty"`
-	ColorScheme             string   `json:"colorScheme,omitempty"`
-	DefaultKey              string   `json:"default_key,omitempty"`
-	Description             string   `json:"description,omitempty"`
-	DisplayPreference       string   `json:"display_preference,omitempty"`
-	ExpandedLegendColumns   []string `json:"expanedLegendColumns,omitempty"`
-	GroupName               string   `json:"group_name,omitempty"`
-	GroupOrder              int      `json:"group_order,omitempty"`
-	IsDefault               bool     `json:"is_default,omitempty"`
-	LegendType              string   `json:"legendType,omitempty"`
-	LineStroke              string   `json:"lineStroke,omitempty"`
-	LineStyle               string   `json:"lineStyle,omitempty"`
-	YAxisAlwaysIncludeZero  bool     `json:"yAxisAlwaysIncludeZero,omitempty"`
-	YAxisMax                int      `json:"yAxisMax,omitempty"`
-	YAxisMin                int      `json:"yAxisMin,omitempty"`
-	YAxisType               string   `json:"yAxisType,omitempty"`
+	ChartType              string   `json:"chartType,omitempty"`
+	ColorScheme            string   `json:"colorScheme,omitempty"`
+	DefaultKey             string   `json:"default_key,omitempty"`
+	Description            string   `json:"description,omitempty"`
+	DisplayPreference      string   `json:"display_preference,omitempty"`
+	ExpandedLegendColumns  []string `json:"expanedLegendColumns,omitempty"`
+	GroupName              string   `json:"group_name,omitempty"`
+	GroupOrder             int      `json:"group_order,omitempty"`
+	IsDefault              bool     `json:"is_default,omitempty"`
+	LegendType             string   `json:"legendType,omitempty"`
+	LineStroke             string   `json:"lineStroke,omitempty"`
+	LineStyle              string   `json:"lineStyle,omitempty"`
+	YAxisAlwaysIncludeZero bool     `json:"yAxisAlwaysIncludeZero,omitempty"`
+	YAxisMax               int      `json:"yAxisMax,omitempty"`
+	YAxisMin               int      `json:"yAxisMin,omitempty"`
+	YAxisType              string   `json:"yAxisType,omitempty"`
 }
 
 type BuilderViewOptions struct {
-	DisplayScope string    `json:"displayScope,omitempty"`
-	Report       *ReportView `json:"report,omitempty"`
-	Resource     *Resource `json:"resource,omitempty"`
+	DisplayScope    string      `json:"displayScope,omitempty"`
+	Report          *ReportView `json:"report,omitempty"`
+	Resource        *Resource   `json:"resource,omitempty"`
+	DisableUserEdit bool        `json:"disableUserEdit,omitempty"`
 }
 
 type ReportView struct {
@@ -144,14 +149,14 @@ type LayoutRequest struct {
 }
 
 type BuilderDataResponse struct {
-	Key                  string      `json:"key,omitempty"`
-	ChartData            any         `json:"chart_data,omitempty"`
-	ChartDataV2          any         `json:"chart_data_v2,omitempty"`
-	QueryData            any         `json:"query_data,omitempty"`
-	TimeRange            *TimeRange  `json:"time_range,omitempty"`
-	NotAvailableMetrics  []string    `json:"not_available_metrics,omitempty"`
-	Error                string      `json:"error,omitempty"`
-	ErrorDesc            string      `json:"error_desc,omitempty"`
+	Key                 string     `json:"key,omitempty"`
+	ChartData           any        `json:"chart_data,omitempty"`
+	ChartDataV2         any        `json:"chart_data_v2,omitempty"`
+	QueryData           any        `json:"query_data,omitempty"`
+	TimeRange           *TimeRange `json:"time_range,omitempty"`
+	NotAvailableMetrics []string   `json:"not_available_metrics,omitempty"`
+	Error               string     `json:"error,omitempty"`
+	ErrorDesc           string     `json:"error_desc,omitempty"`
 }
 
 type TimeRange struct {
@@ -162,22 +167,22 @@ type TimeRange struct {
 
 // Metrics types
 type MetricsV2Request struct {
-	DataType               string   `json:"dataType"`
-	WidgetType             string   `json:"widgetType"`
-	KpiType                int      `json:"kpiType,omitempty"`
-	KpiTypes               []int    `json:"kpiTypes,omitempty"`
-	Resource               string   `json:"resource,omitempty"`
-	Resources              []string `json:"resources,omitempty"`
-	Metric                 string   `json:"metric,omitempty"`
-	Page                   int      `json:"page,omitempty"`
-	Limit                  int      `json:"limit,omitempty"`
-	Search                 string   `json:"search,omitempty"`
-	ExcludeMetrics         []string `json:"excludeMetrics,omitempty"`
-	MandatoryMetrics       []string `json:"mandatoryMetrics,omitempty"`
-	ExcludeFilters         []string `json:"excludeFilters,omitempty"`
-	MandatoryFilters       []string `json:"mandatoryFilters,omitempty"`
-	FilterTypes            []int    `json:"filterTypes,omitempty"`
-	ReturnOnlyMandatoryData bool    `json:"returnOnlyMandatoryData,omitempty"`
+	DataType                string   `json:"dataType"`
+	WidgetType              string   `json:"widgetType"`
+	KpiType                 int      `json:"kpiType,omitempty"`
+	KpiTypes                []int    `json:"kpiTypes,omitempty"`
+	Resource                string   `json:"resource,omitempty"`
+	Resources               []string `json:"resources,omitempty"`
+	Metric                  string   `json:"metric,omitempty"`
+	Page                    int      `json:"page,omitempty"`
+	Limit                   int      `json:"limit,omitempty"`
+	Search                  string   `json:"search,omitempty"`
+	ExcludeMetrics          []string `json:"excludeMetrics,omitempty"`
+	MandatoryMetrics        []string `json:"mandatoryMetrics,omitempty"`
+	ExcludeFilters          []string `json:"excludeFilters,omitempty"`
+	MandatoryFilters        []string `json:"mandatoryFilters,omitempty"`
+	FilterTypes             []int    `json:"filterTypes,omitempty"`
+	ReturnOnlyMandatoryData bool     `json:"returnOnlyMandatoryData,omitempty"`
 }
 
 type MetricsV2Response struct {
@@ -188,22 +193,22 @@ type MetricsV2Response struct {
 
 // Alert types
 type Alert struct {
-	ID          int            `json:"id,omitempty"`
-	RuleID      int            `json:"rule_id"`
-	ExecutorID  int            `json:"executor_id,omitempty"`
-	ProjectUID  string         `json:"project_uid,omitempty"`
-	Title       string         `json:"title"`
-	Message     string         `json:"message,omitempty"`
-	Status      int            `json:"status"`
-	Value       float64        `json:"value,omitempty"`
-	Threshold   float64        `json:"threshold,omitempty"`
-	Operator    string         `json:"operator,omitempty"`
-	Unit        string         `json:"unit,omitempty"`
+	ID          int               `json:"id,omitempty"`
+	RuleID      int               `json:"rule_id"`
+	ExecutorID  int               `json:"executor_id,omitempty"`
+	ProjectUID  string            `json:"project_uid,omitempty"`
+	Title       string            `json:"title"`
+	Message     string            `json:"message,omitempty"`
+	Status      int               `json:"status"`
+	Value       float64           `json:"value,omitempty"`
+	Threshold   float64           `json:"threshold,omitempty"`
+	Operator    string            `json:"operator,omitempty"`
+	Unit        string            `json:"unit,omitempty"`
 	Attributes  map[string]string `json:"attributes,omitempty"`
-	AttributesB any            `json:"attributesb,omitempty"`
-	TotalCount  int            `json:"total_count,omitempty"`
-	TriggeredAt string         `json:"triggered_at,omitempty"`
-	CreatedAt   string         `json:"created_at,omitempty"`
+	AttributesB any               `json:"attributesb,omitempty"`
+	TotalCount  int               `json:"total_count,omitempty"`
+	TriggeredAt string            `json:"triggered_at,omitempty"`
+	CreatedAt   string            `json:"created_at,omitempty"`
 }
 
 type NewAlert struct {
@@ -249,9 +254,47 @@ type Column struct {
 	Label string `json:"label"`
 }
 
+type QueryRequest struct {
+	Queries []Query `json:"queries"`
+}
+
+type Query struct {
+	ChartType string         `json:"chartType"`
+	Columns   []string       `json:"columns"`
+	Resources []string       `json:"resources"`
+	TimeRange QueryTimeRange `json:"timeRange"`
+	Filters   map[string]any `json:"filters,omitempty"`
+	GroupBy   []string       `json:"groupBy,omitempty"`
+}
+
+type QueryTimeRange struct {
+	From int64 `json:"from"`
+	To   int64 `json:"to"`
+}
+
+type QueryResponse struct {
+	QueryResults []QueryResult `json:"query_results"`
+}
+
+type QueryResult struct {
+	QueryData QueryData `json:"query_data"`
+}
+
+type QueryData struct {
+	Columns []QueryColumn    `json:"columns"`
+	Data    []map[string]any `json:"data"`
+}
+
+type QueryColumn struct {
+	Accessor string `json:"accessor"`
+	Order    int    `json:"order"`
+	Sort     string `json:"sort"`
+	IsMetric bool   `json:"isMetric"`
+}
+
 type StatsResponse struct {
-	CountByStatus    []CountBy `json:"count_by_status"`
-	CountByTitle     []CountBy `json:"count_by_title"`
+	CountByStatus     []CountBy `json:"count_by_status"`
+	CountByTitle      []CountBy `json:"count_by_title"`
 	TimeseriesByTitle []CountBy `json:"timeseries_by_title"`
 }
 
@@ -262,3 +305,63 @@ type CountBy struct {
 	Timestamp string  `json:"timestamp"`
 }
 
+type BuilderConfigItem struct {
+	With           []BuilderConfigWith    `json:"with,omitempty"`
+	Columns        []string               `json:"columns,omitempty"`
+	Source         *BuilderConfigSource   `json:"source,omitempty"`
+	ID             string                 `json:"id,omitempty"`
+	MetaData       *BuilderConfigMetaData `json:"meta_data,omitempty"`
+	MetricMetadata *MetricMetadata        `json:"metricMetadata,omitempty"`
+	Key            string                 `json:"key,omitempty"`
+}
+
+type BuilderConfigWith struct {
+	Key   BuilderConfigWithKey `json:"key" jsonschema:"The filter/groupby key. Must be either 'ATTRIBUTE_FILTER' for filtering or 'SELECT_DATA_BY' for group by,enum=ATTRIBUTE_FILTER|SELECT_DATA_BY"`
+	Value any                  `json:"value" jsonschema:"The filter/groupby value. For ATTRIBUTE_FILTER: object with 'and' or 'or' arrays containing filter conditions (e.g., {\"and\": [{\"host.id\": {\"=\": \"ai-team2\"}}, {\"host.name\": {\"LIKE\": \"%ai%\"}}]}). For SELECT_DATA_BY: array of attribute names (e.g., [\"host.cpu.model.id\"])"`
+	IsArg bool                 `json:"is_arg" jsonschema:"Whether this is an argument (typically true)"`
+}
+
+type BuilderConfigWithKey string
+
+const (
+	BuilderConfigWithKeyAttributeFilter BuilderConfigWithKey = "ATTRIBUTE_FILTER"
+	BuilderConfigWithKeySelectDataBy    BuilderConfigWithKey = "SELECT_DATA_BY"
+)
+
+type AttributeFilterValue struct {
+	And []map[string]map[string]string `json:"and,omitempty" jsonschema:"Array of filter conditions combined with AND logic. Each item is an object with attribute name as key and operator object as value (e.g., {\"host.id\": {\"=\": \"ai-team2\"}})"`
+	Or  []map[string]map[string]string `json:"or,omitempty" jsonschema:"Array of filter conditions combined with OR logic. Each item is an object with attribute name as key and operator object as value (e.g., {\"host.name\": {\"LIKE\": \"%ai%\"}})"`
+}
+
+type BuilderConfigSource struct {
+	Name      string `json:"name,omitempty"`
+	Alias     string `json:"alias,omitempty"`
+	DatasetID *int   `json:"dataset_id,omitempty"`
+}
+
+type BuilderConfigMetaData struct {
+	MetricTypes map[string]int `json:"metricTypes,omitempty"`
+}
+
+type MetricMetadata struct {
+	Attributes map[string]MetricAttribute `json:"attributes,omitempty"`
+	Config     *MetricConfig              `json:"config,omitempty"`
+	Label      string                     `json:"label,omitempty"`
+	Name       string                     `json:"name,omitempty"`
+	Resource   string                     `json:"resource,omitempty"`
+	Type       int                        `json:"type,omitempty"`
+}
+
+type MetricAttribute struct {
+	Count        int      `json:"count,omitempty"`
+	Input        int      `json:"input,omitempty"`
+	InputLen     int      `json:"inputLen,omitempty"`
+	ResourceType string   `json:"resource_type,omitempty"`
+	Type         int      `json:"type,omitempty"`
+	Values       []string `json:"values,omitempty"`
+}
+
+type MetricConfig struct {
+	Config any    `json:"config,omitempty"`
+	Type   string `json:"type,omitempty"`
+}

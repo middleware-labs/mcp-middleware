@@ -21,9 +21,10 @@ A robust and modular [Model Context Protocol (MCP)](https://modelcontextprotocol
 - `get_multi_widget_data` - Get data for multiple widgets at once
 - `update_widget_layouts` - Update widget layout positions
 
-### Metrics & Resources (2 tools)
+### Metrics & Resources (3 tools)
 - `get_metrics` - Get metrics, filters, or groupby tags
 - `get_resources` - Get available resources for queries
+- `query` - Execute flexible queries to retrieve logs, metrics, traces, and other data
 
 ### Alerts (3 tools)
 - `list_alerts` - List alerts for a specific rule
@@ -142,7 +143,7 @@ make inspect
 ```
 
 This opens an interactive web interface where you can:
-- Test all 21 tools
+- Test all 22 tools
 - View server logs in real-time
 - Debug inputs and outputs
 - Verify everything works
@@ -287,7 +288,7 @@ make inspect-env
 ```
 
 The inspector will open in your browser and connect to your server, allowing you to:
-- Test all 21 tools interactively
+- Test all 22 tools interactively
 - View real-time server logs and notifications
 - Debug tool inputs and outputs
 - Verify tool schemas and descriptions
@@ -342,7 +343,7 @@ mcp-middleware/
 │
 ├── server/                     # MCP Server Implementation
 │   ├── server.go              # Server initialization and lifecycle
-│   ├── register_tools.go      # Tool registration (21 tools)
+│   ├── register_tools.go      # Tool registration (22 tools)
 │   ├── register_resources.go  # Resource registration (future)
 │   ├── register_prompts.go    # Prompt registration (future)
 │   └── tools/                 # MCP Tool Definitions
@@ -412,7 +413,7 @@ mcp-middleware/
 
 **Structure:**
 - **`server.go`**: Core server setup, initialization, and lifecycle management
-- **`register_tools.go`**: Registration of all MCP tools (21 tools)
+- **`register_tools.go`**: Registration of all MCP tools (22 tools)
 - **`register_resources.go`**: Registration of MCP resources (prepared for future)
 - **`register_prompts.go`**: Registration of MCP prompts (prepared for future)
 - **`tools/`**: Directory containing all MCP tool definitions
@@ -422,7 +423,7 @@ mcp-middleware/
   - **`TOOLS_DOCUMENTATION.md`**: Comprehensive documentation for all tools
 
 **MCP Features:**
-- **Tools** ✅: Functions that AI models can actively call (21 tools implemented)
+- **Tools** ✅: Functions that AI models can actively call (22 tools implemented)
 - **Resources** 🔜: Passive data sources for context (structure prepared)
 - **Prompts** 🔜: Pre-built instruction templates (structure prepared)
 
@@ -430,7 +431,7 @@ mcp-middleware/
 
 - **`dashboards_tools.go`** (7 tools): List, get, create, update, delete, clone dashboards, set favorites
 - **`widgets_tools.go`** (6 tools): List, create, delete widgets, get widget data, batch data, update layouts
-- **`metrics_tools.go`** (2 tools): Get metrics/filters/groupby tags, list available resources
+- **`metrics_tools.go`** (3 tools): Get metrics/filters/groupby tags, list available resources, execute flexible queries
 - **`alerts_tools.go`** (3 tools): List alerts, create alerts, get alert statistics
 
 #### 4. Testing (`test/`)

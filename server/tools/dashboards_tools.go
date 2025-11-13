@@ -68,11 +68,10 @@ This tool creates a new dashboard with the specified configuration. Dashboards c
 }
 
 type CreateDashboardInput struct {
-	Label        string `json:"label" jsonschema:"The dashboard name/title. Must be at least 3 characters long,required,minLength=3"`
-	Visibility   string `json:"visibility" jsonschema:"Dashboard visibility setting. Must be either 'public' (shared with team) or 'private' (personal only),required,enum=public|private"`
-	Description  string `json:"description,omitempty" jsonschema:"Optional detailed description of the dashboard's purpose and contents"`
-	DisplayScope string `json:"display_scope,omitempty" jsonschema:"Optional display scope for organizing dashboards into categories or groups"`
-	Key          string `json:"key,omitempty" jsonschema:"Optional unique key identifier for the dashboard. If not provided, will be auto-generated"`
+	Label       string `json:"label" jsonschema:"The dashboard name/title. Must be at least 3 characters long,required,minLength=3"`
+	Visibility  string `json:"visibility" jsonschema:"Dashboard visibility setting. Must be either 'public' (shared with team) or 'private' (personal only),required,enum=public|private"`
+	Description string `json:"description,omitempty" jsonschema:"Optional detailed description of the dashboard's purpose and contents"`
+	Key         string `json:"key,omitempty" jsonschema:"Optional unique key identifier for the dashboard. If not provided, will be auto-generated"`
 }
 
 func HandleCreateDashboard(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input CreateDashboardInput) (*mcp.CallToolResult, map[string]any, error) {
@@ -80,7 +79,7 @@ func HandleCreateDashboard(s ServerInterface, ctx context.Context, req *mcp.Call
 		Label:        input.Label,
 		Visibility:   input.Visibility,
 		Description:  input.Description,
-		DisplayScope: input.DisplayScope,
+		DisplayScope: "", // Always empty string
 		Key:          input.Key,
 	}
 
@@ -100,12 +99,11 @@ This tool modifies an existing dashboard identified by its ID. You can update th
 }
 
 type UpdateDashboardInput struct {
-	ID           int    `json:"id" jsonschema:"The numeric ID of the dashboard to update,required"`
-	Label        string `json:"label" jsonschema:"The updated dashboard name/title. Must be at least 3 characters long,required,minLength=3"`
-	Visibility   string `json:"visibility" jsonschema:"Updated visibility setting. Must be either 'public' or 'private',required,enum=public|private"`
-	Description  string `json:"description,omitempty" jsonschema:"Updated description of the dashboard"`
-	DisplayScope string `json:"display_scope,omitempty" jsonschema:"Updated display scope for dashboard organization"`
-	Key          string `json:"key,omitempty" jsonschema:"Updated unique key identifier. Must be unique across all dashboards"`
+	ID          int    `json:"id" jsonschema:"The numeric ID of the dashboard to update,required"`
+	Label       string `json:"label" jsonschema:"The updated dashboard name/title. Must be at least 3 characters long,required,minLength=3"`
+	Visibility  string `json:"visibility" jsonschema:"Updated visibility setting. Must be either 'public' or 'private',required,enum=public|private"`
+	Description string `json:"description,omitempty" jsonschema:"Updated description of the dashboard"`
+	Key         string `json:"key,omitempty" jsonschema:"Updated unique key identifier. Must be unique across all dashboards"`
 }
 
 func HandleUpdateDashboard(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input UpdateDashboardInput) (*mcp.CallToolResult, map[string]any, error) {
@@ -114,7 +112,7 @@ func HandleUpdateDashboard(s ServerInterface, ctx context.Context, req *mcp.Call
 		Label:        input.Label,
 		Visibility:   input.Visibility,
 		Description:  input.Description,
-		DisplayScope: input.DisplayScope,
+		DisplayScope: "", // Always empty string
 		Key:          input.Key,
 	}
 
@@ -154,11 +152,10 @@ This tool duplicates an existing dashboard, creating a new dashboard with the sa
 }
 
 type CloneDashboardInput struct {
-	Label        string `json:"label" jsonschema:"The name for the new cloned dashboard. Must be at least 3 characters,required,minLength=3"`
-	Visibility   string `json:"visibility" jsonschema:"Visibility setting for the cloned dashboard: 'public' or 'private',required,enum=public|private"`
-	Description  string `json:"description,omitempty" jsonschema:"Optional description for the cloned dashboard"`
-	DisplayScope string `json:"display_scope,omitempty" jsonschema:"Optional display scope for organizing the cloned dashboard"`
-	SourceKey    string `json:"source_key,omitempty" jsonschema:"The unique key of the source dashboard to clone from"`
+	Label       string `json:"label" jsonschema:"The name for the new cloned dashboard. Must be at least 3 characters,required,minLength=3"`
+	Visibility  string `json:"visibility" jsonschema:"Visibility setting for the cloned dashboard: 'public' or 'private',required,enum=public|private"`
+	Description string `json:"description,omitempty" jsonschema:"Optional description for the cloned dashboard"`
+	SourceKey   string `json:"source_key,omitempty" jsonschema:"The unique key of the source dashboard to clone from"`
 }
 
 func HandleCloneDashboard(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input CloneDashboardInput) (*mcp.CallToolResult, map[string]any, error) {
@@ -166,7 +163,7 @@ func HandleCloneDashboard(s ServerInterface, ctx context.Context, req *mcp.CallT
 		Label:        input.Label,
 		Visibility:   input.Visibility,
 		Description:  input.Description,
-		DisplayScope: input.DisplayScope,
+		DisplayScope: "", // Always empty string
 		Key:          input.SourceKey,
 	}
 

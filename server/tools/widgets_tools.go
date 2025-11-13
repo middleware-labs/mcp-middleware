@@ -3,6 +3,9 @@ package tools
 import (
 	"context"
 	"fmt"
+	"regexp"
+	"strings"
+	"time"
 
 	"mcp-middleware/middleware"
 
@@ -39,24 +42,124 @@ var CreateWidgetTool = &mcp.Tool{
 	Name: "create_widget",
 	Description: `Create a new widget or update an existing widget on a dashboard.
 	
-This tool allows you to add new visualizations (charts, graphs, tables) to dashboards or modify existing ones. The builder_config contains the query, chart type, and visualization settings. If builder_id is provided, it updates the existing widget; otherwise, it creates a new one.`,
+This tool allows you to add new visualizations (charts, graphs, tables) to dashboards or modify existing ones. The builderConfig is an array of configuration objects, each containing queries, chart type, and visualization settings. Each builderConfig item should have: with (array), columns (array of strings), source (object with name, alias, dataset_id), id (string UUID), meta_data (object with metricTypes), metricMetadata (object with attributes, config, label, name, resource, type), and key (string). If builderId is provided, it updates the existing widget; otherwise, it creates a new one.`,
+}
+
+func generateWidgetKey(label string) string {
+	re := regexp.MustCompile(`[^A-Za-z0-9]`)
+	cleaned := re.ReplaceAllString(label, "_")
+	cleaned = strings.ToLower(cleaned)
+	randomID := fmt.Sprintf("%d", time.Now().UnixNano()%1000000000)
+	return fmt.Sprintf("%s_%s", cleaned, randomID)
 }
 
 type CreateWidgetInput struct {
-	Label         string `json:"label" jsonschema:"The display name for the widget (e.g., 'CPU Usage', 'Error Rate'),required"`
-	Key           string `json:"key,omitempty" jsonschema:"Optional unique key identifier for the widget"`
-	Description   string `json:"description,omitempty" jsonschema:"Optional description explaining what the widget displays"`
-	BuilderConfig any    `json:"builder_config,omitempty" jsonschema:"Widget configuration object containing queries, chart type, display settings, and data sources. This is a complex object specific to widget type"`
-	BuilderID     int    `json:"builder_id,omitempty" jsonschema:"If provided, updates the existing widget with this ID instead of creating a new one"`
+	Label             string                   `json:"label" jsonschema:"The display name for the widget (e.g., 'CPU Usage', 'Error Rate'),required"`
+	Key               string                   `json:"key,omitempty" jsonschema:"Optional unique key identifier for the widget"`
+	Description       string                   `json:"description,omitempty" jsonschema:"Optional description explaining what the widget displays"`
+	BuilderConfig     []BuilderConfigItemInput `json:"builderConfig,omitempty" jsonschema:"Widget configuration array containing queries, chart type, display settings, and data sources. Each item should have: columns, source, id, meta_data, metricMetadata, key, group_by, and filter_with"`
+	ReportID          int                      `json:"report_id,omitempty" jsonschema:"The numeric ID of the dashboard (report) where this widget will be created"`
+	ReportKey         string                   `json:"report_key,omitempty" jsonschema:"The unique key identifier of the dashboard (report) where this widget will be created"`
+	ReportName        string                   `json:"report_name,omitempty" jsonschema:"The name of the dashboard (report) where this widget will be created"`
+	ReportDescription string                   `json:"report_description,omitempty" jsonschema:"Optional description of the dashboard (report)"`
+	ReportMetadata    any                      `json:"report_metadata,omitempty" jsonschema:"Optional metadata for the dashboard (report)"`
+	DisableUserEdit   bool                     `json:"disable_user_edit,omitempty" jsonschema:"Whether to disable user editing of the widget (default: false)"`
+}
+
+type BuilderConfigItemInput struct {
+	Columns        []string                             `json:"columns,omitempty" jsonschema:"Array of column/metric names to query (e.g., [\"avg(k8s.node.memory.utilization,value(avg))\"])"`
+	Source         *middleware.BuilderConfigSource      `json:"source,omitempty" jsonschema:"Data source configuration with name, alias, and dataset_id"`
+	ID             string                               `json:"id,omitempty" jsonschema:"Unique identifier for this config item (UUID format)"`
+	MetaData       *middleware.BuilderConfigMetaData    `json:"meta_data,omitempty" jsonschema:"Metadata containing metricTypes mapping"`
+	MetricMetadata map[string]middleware.MetricMetadata `json:"metricMetadata,omitempty" jsonschema:"Map of metric names to their metadata. Each key is a metric name (e.g., \"k8s.node.cpu.utilization_percent\") and value is the metadata object with name, label, resource, type, attributes, and config"`
+	Key            string                               `json:"key,omitempty" jsonschema:"Key identifier for this config item"`
+	GroupBy        []string                             `json:"group_by,omitempty" jsonschema:"Array of attribute names to group by (e.g., [\"host.cpu.model.id\"]). This will be converted to SELECT_DATA_BY in the 'with' array"`
+	FilterWith     any                                  `json:"filter_with,omitempty" jsonschema:"Filter conditions object with 'and' or 'or' arrays (e.g., {\"and\": [{\"host.id\": {\"=\": \"ai-team2\"}}, {\"host.name\": {\"LIKE\": \"%ai%\"}}]}). This will be converted to ATTRIBUTE_FILTER in the 'with' array"`
 }
 
 func HandleCreateWidget(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input CreateWidgetInput) (*mcp.CallToolResult, map[string]any, error) {
+	var builderViewOptions *middleware.BuilderViewOptions
+	if input.ReportID > 0 || input.ReportKey != "" || input.ReportName != "" {
+		builderViewOptions = &middleware.BuilderViewOptions{
+			DisableUserEdit: input.DisableUserEdit,
+		}
+
+		if input.ReportID > 0 || input.ReportKey != "" || input.ReportName != "" {
+			builderViewOptions.Report = &middleware.ReportView{
+				ReportID:          input.ReportID,
+				ReportKey:         input.ReportKey,
+				ReportName:        input.ReportName,
+				ReportDescription: input.ReportDescription,
+				Metadata:          input.ReportMetadata,
+			}
+		}
+	}
+
+	widgetKey := input.Key
+	if widgetKey == "" {
+		widgetKey = generateWidgetKey(input.Label)
+	}
+
+	builderConfig := make([]middleware.BuilderConfigItem, len(input.BuilderConfig))
+	for i, configInput := range input.BuilderConfig {
+		var withItems []middleware.BuilderConfigWith
+
+		if len(configInput.GroupBy) > 0 {
+			withItems = append(withItems, middleware.BuilderConfigWith{
+				Key:   middleware.BuilderConfigWithKeySelectDataBy,
+				Value: configInput.GroupBy,
+				IsArg: true,
+			})
+		}
+
+		if configInput.FilterWith != nil {
+			withItems = append(withItems, middleware.BuilderConfigWith{
+				Key:   middleware.BuilderConfigWithKeyAttributeFilter,
+				Value: configInput.FilterWith,
+				IsArg: true,
+			})
+		}
+
+		var metricMetadata *middleware.MetricMetadata
+		if len(configInput.MetricMetadata) > 0 {
+			for _, v := range configInput.MetricMetadata {
+				metricMetadata = &v
+				break
+			}
+		}
+
+		builderConfig[i] = middleware.BuilderConfigItem{
+			With:           withItems,
+			Columns:        configInput.Columns,
+			Source:         configInput.Source,
+			ID:             configInput.ID,
+			MetaData:       configInput.MetaData,
+			MetricMetadata: metricMetadata,
+			Key:            configInput.Key,
+		}
+	}
+
 	widget := &middleware.CustomWidget{
-		Label:         input.Label,
-		Key:           input.Key,
-		Description:   input.Description,
-		BuilderConfig: input.BuilderConfig,
-		BuilderID:     input.BuilderID,
+		Label:              input.Label,
+		Key:                widgetKey,
+		Description:        input.Description,
+		BuilderConfig:      builderConfig,
+		BuilderViewOptions: builderViewOptions,
+
+		// Default values (always the same - not exposed in input)
+		BuilderID:       -1,
+		ScopeID:         -1,
+		WidgetAppID:     1,
+		IsClone:         false,
+		Category:        "Metrics",
+		Formulas:        []any{},
+		DontRefreshData: false,
+		Layout: &middleware.LayoutItem{
+			X: 0,
+			Y: 0,
+			W: 4,
+			H: 5,
+		},
 	}
 
 	result, err := s.Client().CreateWidget(ctx, widget)
@@ -95,11 +198,11 @@ This tool executes the widget's query and returns the visualization data (time s
 }
 
 type GetWidgetDataInput struct {
-	BuilderID     int    `json:"builder_id,omitempty" jsonschema:"The numeric builder ID of the widget to fetch data for"`
-	Key           string `json:"key,omitempty" jsonschema:"Alternative to builder_id: the unique key identifier of the widget"`
-	Label         string `json:"label,omitempty" jsonschema:"Alternative to builder_id: the label of the widget"`
-	BuilderConfig any    `json:"builder_config,omitempty" jsonschema:"Widget configuration containing the query and data source settings"`
-	UseV2         bool   `json:"use_v2,omitempty" jsonschema:"Set to true to use the newer v2 data format (default: false)"`
+	BuilderID     int                            `json:"builder_id,omitempty" jsonschema:"The numeric builder ID of the widget to fetch data for"`
+	Key           string                         `json:"key,omitempty" jsonschema:"Alternative to builder_id: the unique key identifier of the widget"`
+	Label         string                         `json:"label,omitempty" jsonschema:"Alternative to builder_id: the label of the widget"`
+	BuilderConfig []middleware.BuilderConfigItem `json:"builder_config,omitempty" jsonschema:"Widget configuration array containing the query and data source settings"`
+	UseV2         bool                           `json:"use_v2,omitempty" jsonschema:"Set to true to use the newer v2 data format (default: false)"`
 }
 
 func HandleGetWidgetData(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input GetWidgetDataInput) (*mcp.CallToolResult, map[string]any, error) {
@@ -131,11 +234,11 @@ type GetMultiWidgetDataInput struct {
 }
 
 type WidgetDataRequest struct {
-	BuilderID     int    `json:"builder_id,omitempty" jsonschema:"The numeric builder ID of the widget"`
-	Key           string `json:"key,omitempty" jsonschema:"The unique key identifier of the widget"`
-	Label         string `json:"label,omitempty" jsonschema:"The label of the widget"`
-	BuilderConfig any    `json:"builder_config,omitempty" jsonschema:"Widget configuration containing query and display settings"`
-	UseV2         bool   `json:"use_v2,omitempty" jsonschema:"Use v2 data format (default: false)"`
+	BuilderID     int                            `json:"builder_id,omitempty" jsonschema:"The numeric builder ID of the widget"`
+	Key           string                         `json:"key,omitempty" jsonschema:"The unique key identifier of the widget"`
+	Label         string                         `json:"label,omitempty" jsonschema:"The label of the widget"`
+	BuilderConfig []middleware.BuilderConfigItem `json:"builder_config,omitempty" jsonschema:"Widget configuration array containing query and display settings"`
+	UseV2         bool                           `json:"use_v2,omitempty" jsonschema:"Use v2 data format (default: false)"`
 }
 
 func HandleGetMultiWidgetData(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input GetMultiWidgetDataInput) (*mcp.CallToolResult, map[string]any, error) {
