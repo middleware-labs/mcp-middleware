@@ -93,7 +93,7 @@ Press `Ctrl+C` to stop.
 
 ### Step 5: Connect to Claude Desktop
 
-#### For Linux/macOS:
+#### For macOS:
 
 1. Open `~/.config/Claude/claude_desktop_config.json`
 2. Add the server configuration:
@@ -187,41 +187,6 @@ The server supports three transport modes:
 - **http**: Streamable HTTP transport for web-based clients (uses `NewStreamableHTTPHandler`)
 - **sse**: Server-Sent Events transport for real-time streaming (uses `NewSSEHandler`)
 
-## Installation
-
-### 1. Clone the repository
-
-```bash
-# Clone or download the project
-cd mcp-middleware
-```
-
-### 2. Install dependencies
-
-```bash
-go mod download
-```
-
-### 3. Configure environment variables
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` with your Middleware credentials:
-
-```env
-MIDDLEWARE_API_KEY=your_api_key_here
-MIDDLEWARE_BASE_URL=https://your-project.middleware.io
-APP_MODE=stdio
-```
-
-### 4. Build the server
-
-```bash
-go build -o mcp-middleware
-```
-
 ## Configuration
 
 | Environment Variable | Required | Default | Description |
@@ -274,55 +239,6 @@ APP_MODE=sse APP_HOST=localhost APP_PORT=8080 ./mcp-middleware
 ```
 
 The server will start on `http://localhost:8080` with SSE support for real-time streaming.
-
-### Testing with MCP Inspector
-
-The project includes support for the [MCP Inspector](https://modelcontextprotocol.io/docs/tools/inspector), an interactive tool for testing and debugging your MCP server.
-
-```bash
-# Quick start (requires Node.js and npx)
-make inspect
-
-# Or with .env configuration
-make inspect-env
-```
-
-The inspector will open in your browser and connect to your server, allowing you to:
-- Test all 19 tools interactively
-- View real-time server logs and notifications
-- Debug tool inputs and outputs
-- Verify tool schemas and descriptions
-
-### Claude Desktop Integration
-
-Add to your Claude Desktop configuration (`~/.config/Claude/claude_desktop_config.json` on Linux/macOS or `%APPDATA%\Claude\claude_desktop_config.json` on Windows):
-
-```json
-{
-  "mcpServers": {
-    "middleware": {
-      "command": "/full/path/to/mcp-middleware",
-      "env": {
-        "MIDDLEWARE_API_KEY": "your_api_key",
-        "MIDDLEWARE_BASE_URL": "https://your-project.middleware.io"
-      }
-    }
-  }
-}
-```
-
-**Important**: Use the full absolute path to your built binary.
-
-### Example Usage with Claude
-
-Once connected, you can ask Claude to:
-
-- "List all my dashboards in Middleware"
-- "Create a new dashboard called 'Production Metrics'"
-- "Get the data for widget ID 123"
-- "Show me all alerts for rule 456"
-- "What resources are available in Middleware?"
-- "Clone the 'API Performance' dashboard"
 
 ## Project Structure
 
@@ -519,12 +435,6 @@ This project follows Go best practices:
 - Proper error handling with wrapped errors
 - Context propagation for cancellation
 - Clear package separation
-
-## API Documentation
-
-For detailed Middleware API documentation, visit:
-- [Middleware API Swagger](https://app.middleware.io/swagger/index.html)
-- [Middleware Documentation](https://docs.middleware.io/)
 
 ## Contributing
 
