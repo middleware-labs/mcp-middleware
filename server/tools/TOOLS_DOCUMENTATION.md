@@ -1,10 +1,10 @@
 # MCP Tools Documentation
 
-This document provides comprehensive information about all 19 MCP tools available in the Middleware.io MCP server. Each tool is documented with detailed descriptions and parameter information based on the [official Middleware API](https://app.middleware.io/swagger.json).
+This document provides comprehensive information about all 21 MCP tools available in the Middleware.io MCP server. Each tool is documented with detailed descriptions and parameter information based on the [official Middleware API](https://app.middleware.io/swagger.json).
 
 ## Overview
 
-The Middleware MCP server exposes Middleware.io's monitoring platform capabilities through the Model Context Protocol, allowing AI assistants to interact with dashboards, widgets, metrics, and alerts.
+The Middleware MCP server exposes Middleware.io's monitoring platform capabilities through the Model Context Protocol, allowing AI assistants to interact with dashboards, widgets, metrics, alerts, and error incidents.
 
 ## Tool Categories
 
@@ -19,6 +19,9 @@ Query available metrics, resources, and metadata for building monitoring queries
 
 ### 🚨 Alert Tools (3 tools)
 Manage and analyze alert instances and statistics.
+
+### ⚠️ Error/Incident Tools (2 tools)
+List and retrieve detailed information about errors and incidents in the system.
 
 ---
 
@@ -348,6 +351,65 @@ Manage and analyze alert instances and statistics.
 
 ---
 
+## Error/Incident Tools
+
+### 20. `list_errors`
+**Purpose:** List all errors/incidents currently happening in the system.
+
+**Description:** This tool retrieves all error incidents from the Middleware.io system. Use this to monitor system health, identify ongoing issues, and track error patterns. Results can be filtered by time range, status, and search terms, and support pagination.
+
+**IMPORTANT:** Each error/incident in the response includes an `issue_url` field that contains a direct, clickable URL link to view the issue details in the Middleware.io web interface. This URL can be used to redirect users to the full issue details page where they can see complete context, occurrence history, related information, and all technical details. The URL format is: `https://[base-url]/ops-ai?fingerprint=[fingerprint]`. Always include this URL when presenting error information to users so they can easily navigate to view more details.
+
+**Parameters:**
+- `from_ts` (integer, **required**): Start timestamp in milliseconds (Unix timestamp * 1000)
+- `to_ts` (integer, **required**): End timestamp in milliseconds (Unix timestamp * 1000)
+- `page` (integer, **required**): Page number for pagination (default: 1)
+- `status` (string, **required**): Filter by status. Valid values: 'all', 'for_review', 'resolved', 'reviewed', 'ignored'
+- `filter` (string, optional): Optional filter string to narrow down results
+- `search` (string, optional): Search term to filter incidents by title or description
+
+**Response Fields:**
+Each incident in the response includes:
+- `fingerprint`: Unique identifier for the incident
+- `title`: Title of the error/incident
+- `subtitle`: Additional details about the incident
+- `status`: Current status (for_review, reviewed, resolved, ignored)
+- `service_name`: Service where the incident occurred
+- `occurrences`: Number of times this incident has occurred
+- `category`: Category of the error (e.g., 'code_error')
+- `exception_type`: Type of exception (e.g., 'Warning', 'Error')
+- `last_occurred`: Timestamp of the last occurrence
+- `issue_url`: **Direct clickable URL to view full details in Middleware.io web interface**
+- And other metadata fields
+
+**Example Use Cases:**
+- Monitor current system errors
+- Track error patterns over time
+- Identify frequently occurring issues
+- Filter errors by status for review
+- Get clickable links to view detailed error information
+
+---
+
+### 21. `get_error_details`
+**Purpose:** Get detailed information about a specific error/incident by its fingerprint.
+
+**Description:** This tool retrieves comprehensive details about a specific error incident from the Middleware.io system. Use this to investigate a particular error, view its full context, occurrence history, and related information. This provides deeper insights than the list view, including full stack traces, related incidents, and detailed metadata.
+
+**Parameters:**
+- `fingerprint` (string, **required**): The unique fingerprint identifier of the error/incident
+- `from_ts` (integer, **required**): Start timestamp in milliseconds (Unix timestamp * 1000)
+- `to_ts` (integer, **required**): End timestamp in milliseconds (Unix timestamp * 1000)
+- `filter` (string, optional): Optional filter string to narrow down results
+
+**Example Use Cases:**
+- Investigate a specific error in detail
+- View full error context and stack traces
+- Analyze error occurrence patterns
+- Get complete error metadata
+
+---
+
 ## Alert Tools
 
 ### 17. `list_alerts`
@@ -444,6 +506,12 @@ Manage and analyze alert instances and statistics.
    - Use pagination and ordering for alert lists
    - Understand alert status codes
 
+6. **Error/Incident Management:**
+   - Use `list_errors` to monitor current system health
+   - Always include the `issue_url` when presenting error information to users
+   - Use `get_error_details` for deep investigation of specific errors
+   - Filter errors by status to prioritize review
+
 ---
 
 ## Support
@@ -456,4 +524,5 @@ For questions or issues:
 
 *Generated from Middleware API Swagger specification v1.0*
 *Last Updated: November 2025*
+*Includes Error/Incident Tools added in November 2025*
 

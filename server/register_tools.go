@@ -112,4 +112,16 @@ func (s *Server) registerTools() {
 			return tools.HandleGetAlertStats(s, ctx, req, input)
 		})
 	}
+
+	// Error/Incident tools
+	if !s.config.IsToolExcluded("list_errors") {
+		mcp.AddTool(s.mcpServer, tools.ListErrorsTool, func(ctx context.Context, req *mcp.CallToolRequest, input tools.ListErrorsInput) (*mcp.CallToolResult, map[string]any, error) {
+			return tools.HandleListErrors(s, ctx, req, input)
+		})
+	}
+	if !s.config.IsToolExcluded("get_error_details") {
+		mcp.AddTool(s.mcpServer, tools.GetErrorDetailsTool, func(ctx context.Context, req *mcp.CallToolRequest, input tools.GetErrorDetailsInput) (*mcp.CallToolResult, map[string]any, error) {
+			return tools.HandleGetErrorDetails(s, ctx, req, input)
+		})
+	}
 }

@@ -9,7 +9,7 @@ import (
 
 func (c *Client) GetAlerts(ctx context.Context, ruleID int, params *GetAlertsParams) (*AlertsResponse, error) {
 	path := fmt.Sprintf("/rules/%d/alerts", ruleID)
-	
+
 	if params != nil {
 		query := url.Values{}
 		if params.Page > 0 {
@@ -52,4 +52,3 @@ type GetAlertsParams struct {
 	Page    int
 	OrderBy string
 }
-

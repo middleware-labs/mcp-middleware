@@ -31,6 +31,10 @@ A robust and modular [Model Context Protocol (MCP)](https://modelcontextprotocol
 - `create_alert` - Create a new alert
 - `get_alert_stats` - Get alert statistics
 
+### Error/Incident Management (2 tools)
+- `list_errors` - List all errors/incidents with filtering and pagination (includes clickable `issue_url` for each incident)
+- `get_error_details` - Get detailed information about a specific error/incident by fingerprint
+
 ## Quick Start
 
 Get up and running in 5 minutes!
@@ -143,7 +147,7 @@ make inspect
 ```
 
 This opens an interactive web interface where you can:
-- Test all 19 tools
+- Test all 21 tools
 - View server logs in real-time
 - Debug inputs and outputs
 - Verify everything works
@@ -170,6 +174,16 @@ Create a new dashboard called "Production Metrics" with public visibility
 **Get Widget Data:**
 ```
 Get the data for widget with builder ID 123
+```
+
+**List Errors:**
+```
+List all errors in the system from the last hour
+```
+
+**Get Error Details:**
+```
+Get detailed information about error with fingerprint 7693967476886782339
 ```
 
 ## Prerequisites
@@ -251,15 +265,16 @@ mcp-middleware/
 │
 ├── middleware/                 # Middleware.io API Client
 │   ├── client.go              # HTTP client with authentication
-│   ├── types.go               # API data structures (Dashboard, Widget, Alert, etc.)
+│   ├── types.go               # API data structures (Dashboard, Widget, Alert, Incident, etc.)
 │   ├── dashboards.go          # Dashboard API endpoints
 │   ├── widgets.go             # Widget API endpoints
 │   ├── metrics.go             # Metrics API endpoints
-│   └── alerts.go              # Alert API endpoints
+│   ├── alerts.go              # Alert API endpoints
+│   └── issues.go              # Error/Incident API endpoints
 │
 ├── server/                     # MCP Server Implementation
 │   ├── server.go              # Server initialization and lifecycle
-│   ├── register_tools.go      # Tool registration (19 tools)
+│   ├── register_tools.go      # Tool registration (21 tools)
 │   ├── register_resources.go  # Resource registration (future)
 │   ├── register_prompts.go    # Prompt registration (future)
 │   └── tools/                 # MCP Tool Definitions
@@ -269,6 +284,7 @@ mcp-middleware/
 │       ├── widgets_tools.go    # Widget MCP tools (6 tools)
 │       ├── metrics_tools.go    # Metrics MCP tools (3 tools)
 │       ├── alerts_tools.go     # Alert MCP tools (3 tools)
+│       ├── errors_tools.go      # Error/Incident MCP tools (2 tools)
 │       └── TOOLS_DOCUMENTATION.md # Comprehensive tool reference
 │
 ├── test/                       # Test Suite
@@ -319,6 +335,7 @@ mcp-middleware/
 - **`widgets.go`**: Widget management and data fetching
 - **`metrics.go`**: Metrics metadata and resource discovery
 - **`alerts.go`**: Alert instance management
+- **`issues.go`**: Error/incident listing and detail retrieval
 
 #### 3. MCP Server (`server/`)
 
@@ -329,7 +346,7 @@ mcp-middleware/
 
 **Structure:**
 - **`server.go`**: Core server setup, initialization, and lifecycle management
-- **`register_tools.go`**: Registration of all MCP tools (19 tools)
+- **`register_tools.go`**: Registration of all MCP tools (21 tools)
 - **`register_resources.go`**: Registration of MCP resources (prepared for future)
 - **`register_prompts.go`**: Registration of MCP prompts (prepared for future)
 - **`tools/`**: Directory containing all MCP tool definitions
@@ -339,7 +356,7 @@ mcp-middleware/
   - **`TOOLS_DOCUMENTATION.md`**: Comprehensive documentation for all tools
 
 **MCP Features:**
-- **Tools** ✅: Functions that AI models can actively call (19 tools implemented)
+- **Tools** ✅: Functions that AI models can actively call (21 tools implemented)
 - **Resources** 🔜: Passive data sources for context (structure prepared)
 - **Prompts** 🔜: Pre-built instruction templates (structure prepared)
 
@@ -349,6 +366,7 @@ mcp-middleware/
 - **`widgets_tools.go`** (6 tools): List, create, delete widgets, get widget data, batch data, update layouts
 - **`metrics_tools.go`** (3 tools): Get metrics/filters/groupby tags, list available resources, execute flexible queries
 - **`alerts_tools.go`** (3 tools): List alerts, create alerts, get alert statistics
+- **`errors_tools.go`** (2 tools): List errors/incidents with clickable URLs, get error details by fingerprint
 
 #### 4. Testing (`test/`)
 
