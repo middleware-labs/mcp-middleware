@@ -6,13 +6,16 @@ import (
 
 	"mcp-middleware/middleware"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/mark3labs/mcp-go/mcp"
 )
 
-var ListAlertsTool = &mcp.Tool{
-	Name: "list_alerts",
-	Description: `Get a list of triggered alerts for a specific alert rule with pagination and sorting.	
-This tool retrieves all alert instances that have been triggered for a specific alert rule. Each alert instance represents a time when the alert condition was met. Use this to review alert history, analyze alert patterns, or investigate recent incidents. Results can be paginated and ordered by various fields.`,
+func NewListAlertsTool() mcp.Tool {
+	return mcp.NewTool(
+		"list_alerts",
+		mcp.WithDescription(`Get a list of triggered alerts for a specific alert rule with pagination and sorting.	
+This tool retrieves all alert instances that have been triggered for a specific alert rule. Each alert instance represents a time when the alert condition was met. Use this to review alert history, analyze alert patterns, or investigate recent incidents. Results can be paginated and ordered by various fields.`),
+		mcp.WithInputSchema[ListAlertsInput](),
+	)
 }
 
 type ListAlertsInput struct {
@@ -21,7 +24,12 @@ type ListAlertsInput struct {
 	OrderBy string `json:"order_by,omitempty" jsonschema:"Field name to sort results by (e.g., 'created_at', 'triggered_at', 'status'). Default: 'created_at' in descending order"`
 }
 
-func HandleListAlerts(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input ListAlertsInput) (*mcp.CallToolResult, map[string]any, error) {
+func HandleListAlerts(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	input, err := ParseInput[ListAlertsInput](req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse input: %w", err)
+	}
+
 	params := &middleware.GetAlertsParams{
 		Page:    input.Page,
 		OrderBy: input.OrderBy,
@@ -29,19 +37,22 @@ func HandleListAlerts(s ServerInterface, ctx context.Context, req *mcp.CallToolR
 
 	result, err := s.Client().GetAlerts(ctx, input.RuleID, params)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get alerts: %w", err)
+		return nil, fmt.Errorf("failed to get alerts: %w", err)
 	}
 
 	return ToTextResult(result)
 }
 
-var CreateAlertTool = &mcp.Tool{
-	Name: "create_alert",
-	Description: `Manually create a new alert instance for a specific alert rule.
+func NewCreateAlertTool() mcp.Tool {
+	return mcp.NewTool(
+		"create_alert",
+		mcp.WithDescription(`Manually create a new alert instance for a specific alert rule.
 	
 This tool allows you to programmatically create alert instances, typically used for custom alerting logic or integrations with external monitoring systems. The alert will be associated with an existing alert rule and will appear in the alerts list and trigger configured notification channels.
 
-Note: In most cases, alerts are automatically created when rule conditions are met. Use this tool for custom alerting workflows or manual alert creation.`,
+Note: In most cases, alerts are automatically created when rule conditions are met. Use this tool for custom alerting workflows or manual alert creation.`),
+		mcp.WithInputSchema[CreateAlertInput](),
+	)
 }
 
 type CreateAlertInput struct {
@@ -59,7 +70,12 @@ type CreateAlertInput struct {
 	TriggeredAt string            `json:"triggered_at,omitempty" jsonschema:"Timestamp when the alert was triggered (ISO 8601 format, e.g., '2024-01-15T10:30:00Z')"`
 }
 
-func HandleCreateAlert(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input CreateAlertInput) (*mcp.CallToolResult, map[string]any, error) {
+func HandleCreateAlert(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	input, err := ParseInput[CreateAlertInput](req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse input: %w", err)
+	}
+
 	alert := &middleware.NewAlert{
 		RuleID:      input.RuleID,
 		Title:       input.Title,
@@ -77,32 +93,40 @@ func HandleCreateAlert(s ServerInterface, ctx context.Context, req *mcp.CallTool
 
 	result, err := s.Client().CreateAlert(ctx, input.RuleID, alert)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create alert: %w", err)
+		return nil, fmt.Errorf("failed to create alert: %w", err)
 	}
 
 	return ToTextResult(result)
 }
 
-var GetAlertStatsTool = &mcp.Tool{
-	Name: "get_alert_stats",
-	Description: `Get aggregated statistics and metrics for alerts of a specific rule.
+func NewGetAlertStatsTool() mcp.Tool {
+	return mcp.NewTool(
+		"get_alert_stats",
+		mcp.WithDescription(`Get aggregated statistics and metrics for alerts of a specific rule.
 	
 This tool provides statistical analysis of alert history including counts by status (OK, Warning, Critical), counts by alert title, and time series data showing alert trends over time. Use this to understand alert patterns, identify frequently triggered alerts, and analyze alert distribution.
 
 Returns:
 - Count by status: Number of alerts in each status (OK, Warning, Critical)
 - Count by title: Distribution of alerts by their titles
-- Timeseries by title: Historical alert counts over time grouped by title`,
+- Timeseries by title: Historical alert counts over time grouped by title`),
+		mcp.WithInputSchema[GetAlertStatsInput](),
+	)
 }
 
 type GetAlertStatsInput struct {
 	RuleID int `json:"rule_id" jsonschema:"The numeric ID of the alert rule to fetch statistics for,required"`
 }
 
-func HandleGetAlertStats(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input GetAlertStatsInput) (*mcp.CallToolResult, map[string]any, error) {
+func HandleGetAlertStats(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	input, err := ParseInput[GetAlertStatsInput](req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse input: %w", err)
+	}
+
 	result, err := s.Client().GetAlertStats(ctx, input.RuleID)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get alert stats: %w", err)
+		return nil, fmt.Errorf("failed to get alert stats: %w", err)
 	}
 
 	return ToTextResult(result)

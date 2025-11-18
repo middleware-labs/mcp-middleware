@@ -1,6 +1,6 @@
 # Middleware MCP Server
 
-A robust and modular [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server for [Middleware.io](https://middleware.io) built with the [official Go SDK](https://github.com/modelcontextprotocol/go-sdk). This server enables AI assistants like Claude to interact with Middleware's observability platform for monitoring, dashboards, widgets, metrics, and alerts.
+A robust and modular [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server for [Middleware.io](https://middleware.io) built with the [mark3labs MCP Go library](https://github.com/mark3labs/mcp-go). This server enables AI assistants like Claude to interact with Middleware's observability platform for monitoring, dashboards, widgets, metrics, and alerts.
 
 ## Available Tools
 
@@ -198,8 +198,8 @@ Get detailed information about error with fingerprint 7693967476886782339
 The server supports three transport modes:
 
 - **stdio** (default): Standard input/output transport for command-line usage
-- **http**: Streamable HTTP transport for web-based clients (uses `NewStreamableHTTPHandler`)
-- **sse**: Server-Sent Events transport for real-time streaming (uses `NewSSEHandler`)
+- **http**: Streamable HTTP transport for web-based clients (uses `NewStreamableHTTPServer`)
+- **sse**: Server-Sent Events transport for real-time streaming (uses `NewSSEServer`)
 
 ## Configuration
 
@@ -394,11 +394,12 @@ mcp-middleware/
 To add a new MCP tool:
 
 1. **Choose appropriate file** based on functionality (dashboard/widget/metrics/alert)
-2. **Define tool and input struct** with proper JSON schema tags
-3. **Implement handler** that calls the middleware client
-4. **Register in `server/register_tools.go`** using `mcp.AddTool`
-5. **Add tests** in `test/server/`
-6. **Update** `server/tools/TOOLS_DOCUMENTATION.md`
+2. **Define tool using `mcp.NewTool()`** with `mcp.WithDescription()` and `mcp.WithInputSchema[T]()`
+3. **Define input struct** with proper JSON schema tags
+4. **Implement handler** that calls the middleware client (signature: `func HandleTool(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error)`)
+5. **Register in `server/register_tools.go`** using `s.mcpServer.AddTool(tools.NewTool(), handler)`
+6. **Add tests** in `test/server/`
+7. **Update** `server/tools/TOOLS_DOCUMENTATION.md`
 
 ## Development
 

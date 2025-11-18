@@ -5,16 +5,17 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"mcp-middleware/config"
 	"mcp-middleware/middleware"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/mark3labs/mcp-go/server"
 )
 
 type Server struct {
-	mcpServer *mcp.Server
+	mcpServer *server.MCPServer
 	client    *middleware.Client
 	config    *config.Config
 }
@@ -22,11 +23,7 @@ type Server struct {
 func New(cfg *config.Config) *Server {
 	client := middleware.NewClient(cfg.MiddlewareBaseURL, cfg.MiddlewareAPIKey)
 
-	impl := &mcp.Implementation{
-		Name:    "middleware-mcp-server",
-		Version: "1.0.0",
-	}
-	mcpServer := mcp.NewServer(impl, nil)
+	mcpServer := server.NewMCPServer("middleware-mcp-server", "1.0.0")
 
 	s := &Server{
 		mcpServer: mcpServer,
@@ -42,34 +39,23 @@ func New(cfg *config.Config) *Server {
 	return s
 }
 
-func (s *Server) Run(ctx context.Context, transport mcp.Transport) error {
-	return s.mcpServer.Run(ctx, transport)
-}
-
 func (s *Server) Client() *middleware.Client {
 	return s.client
 }
 
-func (s *Server) GetMCPServer() *mcp.Server {
+func (s *Server) GetMCPServer() *server.MCPServer {
 	return s.mcpServer
 }
 
 func (s *Server) RunHTTPMode(ctx context.Context, cfg *config.Config) error {
-	// Create streamable HTTP handler
-	handler := mcp.NewStreamableHTTPHandler(
-		func(*http.Request) *mcp.Server {
-			return s.mcpServer
-		},
-		&mcp.StreamableHTTPOptions{
-			JSONResponse: true, // Prefer JSON responses for better compatibility
-		},
-	)
+	// Create streamable HTTP server
+	httpServer := server.NewStreamableHTTPServer(s.mcpServer)
 
 	// Create HTTP server
 	addr := fmt.Sprintf("%s:%s", cfg.AppHost, cfg.AppPort)
-	httpServer := &http.Server{
+	httpSrv := &http.Server{
 		Addr:         addr,
-		Handler:      handler,
+		Handler:      httpServer,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  120 * time.Second,
@@ -80,7 +66,7 @@ func (s *Server) RunHTTPMode(ctx context.Context, cfg *config.Config) error {
 	go func() {
 		log.Printf("Starting MCP server in HTTP mode on %s", addr)
 		log.Printf("Server ready. Connect to: http://%s", addr)
-		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			serverErr <- err
 		}
 	}()
@@ -91,7 +77,7 @@ func (s *Server) RunHTTPMode(ctx context.Context, cfg *config.Config) error {
 		log.Println("Shutting down HTTP server...")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		if err := httpServer.Shutdown(shutdownCtx); err != nil {
+		if err := httpSrv.Shutdown(shutdownCtx); err != nil {
 			return fmt.Errorf("error shutting down HTTP server: %w", err)
 		}
 		log.Println("HTTP server stopped")
@@ -102,19 +88,14 @@ func (s *Server) RunHTTPMode(ctx context.Context, cfg *config.Config) error {
 }
 
 func (s *Server) RunSSEMode(ctx context.Context, cfg *config.Config) error {
-	// Create SSE handler
-	handler := mcp.NewSSEHandler(
-		func(*http.Request) *mcp.Server {
-			return s.mcpServer
-		},
-		nil,
-	)
+	// Create SSE server
+	sseServer := server.NewSSEServer(s.mcpServer)
 
 	// Create HTTP server
 	addr := fmt.Sprintf("%s:%s", cfg.AppHost, cfg.AppPort)
-	httpServer := &http.Server{
+	httpSrv := &http.Server{
 		Addr:         addr,
-		Handler:      handler,
+		Handler:      sseServer,
 		ReadTimeout:  30 * time.Second,
 		WriteTimeout: 0, // No timeout for SSE (long-lived connection)
 		IdleTimeout:  120 * time.Second,
@@ -125,7 +106,7 @@ func (s *Server) RunSSEMode(ctx context.Context, cfg *config.Config) error {
 	go func() {
 		log.Printf("Starting MCP server in SSE mode on %s", addr)
 		log.Printf("Server ready. Connect to: http://%s", addr)
-		if err := httpServer.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			serverErr <- err
 		}
 	}()
@@ -136,7 +117,7 @@ func (s *Server) RunSSEMode(ctx context.Context, cfg *config.Config) error {
 		log.Println("Shutting down SSE server...")
 		shutdownCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 		defer cancel()
-		if err := httpServer.Shutdown(shutdownCtx); err != nil {
+		if err := httpSrv.Shutdown(shutdownCtx); err != nil {
 			return fmt.Errorf("error shutting down SSE server: %w", err)
 		}
 		log.Println("SSE server stopped")
@@ -144,4 +125,9 @@ func (s *Server) RunSSEMode(ctx context.Context, cfg *config.Config) error {
 	case err := <-serverErr:
 		return fmt.Errorf("SSE server error: %w", err)
 	}
+}
+
+func (s *Server) RunStdioMode(ctx context.Context) error {
+	stdioServer := server.NewStdioServer(s.mcpServer)
+	return stdioServer.Listen(ctx, os.Stdin, os.Stdout)
 }

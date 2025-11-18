@@ -13,13 +13,13 @@ package server
 func (s *Server) registerPrompts() {
 	// Prompts will be registered here in the future
 	// Example:
-	// import "github.com/modelcontextprotocol/go-sdk/mcp"
-	// mcp.AddPrompt(s.mcpServer, &mcp.Prompt{
+	// import "github.com/mark3labs/mcp-go/mcp"
+	// s.mcpServer.AddPrompt(mcp.Prompt{
 	// 	Name:        "create-dashboard",
 	// 	Description: "Guide through creating a new monitoring dashboard",
 	// 	Arguments: []mcp.PromptArgument{
 	// 		{Name: "dashboard_name", Description: "Name for the new dashboard", Required: true},
 	// 		{Name: "widgets", Description: "List of widgets to include", Required: false},
 	// 	},
-	// })
+	// }, handler)
 }
