@@ -305,6 +305,31 @@ type CountBy struct {
 	Timestamp string  `json:"timestamp"`
 }
 
+type Incident struct {
+	Fingerprint      string         `json:"fingerprint,omitempty"`
+	ServiceName      string         `json:"service_name,omitempty"`
+	Occurrences      int            `json:"occurrences,omitempty"`
+	Category         string         `json:"category,omitempty"`
+	Initiator        string         `json:"initiator,omitempty"`
+	Type             string         `json:"type,omitempty"`
+	Status           string         `json:"status,omitempty"`
+	LastOccurred     int64          `json:"last_occurred,omitempty"`
+	Title            string         `json:"title,omitempty"`
+	Subtitle         string         `json:"subtitle,omitempty"`
+	ExceptionType    string         `json:"exception_type,omitempty"`
+	SDKLanguage      string         `json:"sdk_language,omitempty"`
+	IsResolved       bool           `json:"is_resolved,omitempty"`
+	GitCommitSHA     string         `json:"git_commit_sha,omitempty"`
+	GitRepositoryURL string         `json:"git_repository_url,omitempty"`
+	LogStats         map[string]any `json:"log_stats,omitempty"`
+	IssueURL         string         `json:"issue_url,omitempty"`
+}
+
+type IncidentsResponse struct {
+	Items        []Incident `json:"items,omitempty"`
+	TotalRecords int        `json:"total_records,omitempty"`
+}
+
 type BuilderConfigItem struct {
 	With           []BuilderConfigWith    `json:"with,omitempty"`
 	Columns        []string               `json:"columns,omitempty"`

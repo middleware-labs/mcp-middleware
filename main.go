@@ -9,8 +9,6 @@ import (
 
 	"mcp-middleware/config"
 	"mcp-middleware/server"
-
-	"github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 func main() {
@@ -40,9 +38,8 @@ func main() {
 
 	switch cfg.AppMode {
 	case "stdio":
-		transport := &mcp.StdioTransport{}
 		log.Println("Starting MCP server in stdio mode...")
-		if err := srv.Run(ctx, transport); err != nil {
+		if err := srv.RunStdioMode(ctx); err != nil {
 			log.Fatalf("Server error: %v", err)
 		}
 	case "http":

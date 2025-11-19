@@ -14,11 +14,11 @@ package server
 func (s *Server) registerResources() {
 	// Resources will be registered here in the future
 	// Example:
-	// import "github.com/modelcontextprotocol/go-sdk/mcp"
-	// mcp.AddResource(s.mcpServer, &mcp.Resource{
+	// import "github.com/mark3labs/mcp-go/mcp"
+	// s.mcpServer.AddResource(mcp.Resource{
 	// 	URI:         "middleware://dashboards",
 	// 	Name:        "dashboards",
 	// 	Description: "List of all available dashboards",
 	// 	MimeType:    "application/json",
-	// })
+	// }, handler)
 }

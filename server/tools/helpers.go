@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/mark3labs/mcp-go/mcp"
 )
 
 func ToMap(v any) (map[string]any, error) {
@@ -21,15 +21,28 @@ func ToMap(v any) (map[string]any, error) {
 	return result, nil
 }
 
-func ToTextResult(v any) (*mcp.CallToolResult, map[string]any, error) {
+func ToTextResult(v any) (*mcp.CallToolResult, error) {
 	jsonData, err := json.Marshal(v)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to marshal result: %w", err)
+		return nil, fmt.Errorf("failed to marshal result: %w", err)
 	}
 
-	return &mcp.CallToolResult{
-		Content: []mcp.Content{
-			&mcp.TextContent{Text: string(jsonData)},
-		},
-	}, map[string]any{}, nil
+	return mcp.NewToolResultText(string(jsonData)), nil
+}
+
+// ParseInput parses the arguments from a CallToolRequest into the target struct
+func ParseInput[T any](req mcp.CallToolRequest) (T, error) {
+	var input T
+
+	// Marshal arguments to JSON and unmarshal into target type
+	argsJSON, err := json.Marshal(req.Params.Arguments)
+	if err != nil {
+		return input, fmt.Errorf("failed to marshal arguments: %w", err)
+	}
+
+	if err := json.Unmarshal(argsJSON, &input); err != nil {
+		return input, fmt.Errorf("failed to unmarshal arguments: %w", err)
+	}
+
+	return input, nil
 }

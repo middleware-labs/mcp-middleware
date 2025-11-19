@@ -9,14 +9,17 @@ import (
 
 	"mcp-middleware/middleware"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/mark3labs/mcp-go/mcp"
 )
 
-var ListWidgetsTool = &mcp.Tool{
-	Name: "list_widgets",
-	Description: `Get a list of widgets associated with a specific dashboard or display scope.
+func NewListWidgetsTool() mcp.Tool {
+	return mcp.NewTool(
+		"list_widgets",
+		mcp.WithDescription(`Get a list of widgets associated with a specific dashboard or display scope.
 	
-This tool retrieves all widgets (charts, graphs, tables) that belong to a dashboard or scope. Widgets are the building blocks of dashboards - each widget represents a visualization of your monitoring data. Use this to discover what widgets are available in a dashboard or to inspect widget configurations.`,
+This tool retrieves all widgets (charts, graphs, tables) that belong to a dashboard or scope. Widgets are the building blocks of dashboards - each widget represents a visualization of your monitoring data. Use this to discover what widgets are available in a dashboard or to inspect widget configurations.`),
+		mcp.WithInputSchema[ListWidgetsInput](),
+	)
 }
 
 type ListWidgetsInput struct {
@@ -24,7 +27,12 @@ type ListWidgetsInput struct {
 	DisplayScope string `json:"display_scope,omitempty" jsonschema:"The display scope to filter widgets by (e.g., 'infrastructure', 'apm', 'logs')"`
 }
 
-func HandleListWidgets(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input ListWidgetsInput) (*mcp.CallToolResult, map[string]any, error) {
+func HandleListWidgets(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	input, err := ParseInput[ListWidgetsInput](req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse input: %w", err)
+	}
+
 	params := &middleware.GetWidgetsParams{
 		ReportID:     input.ReportID,
 		DisplayScope: input.DisplayScope,
@@ -32,17 +40,20 @@ func HandleListWidgets(s ServerInterface, ctx context.Context, req *mcp.CallTool
 
 	result, err := s.Client().GetWidgets(ctx, params)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get widgets: %w", err)
+		return nil, fmt.Errorf("failed to get widgets: %w", err)
 	}
 
 	return ToTextResult(result)
 }
 
-var CreateWidgetTool = &mcp.Tool{
-	Name: "create_widget",
-	Description: `Create a new widget or update an existing widget on a dashboard.
+func NewCreateWidgetTool() mcp.Tool {
+	return mcp.NewTool(
+		"create_widget",
+		mcp.WithDescription(`Create a new widget or update an existing widget on a dashboard.
 	
-This tool allows you to add new visualizations (charts, graphs, tables) to dashboards or modify existing ones. The builderConfig is an array of configuration objects, each containing queries, chart type, and visualization settings. Each builderConfig item should have: with (array), columns (array of strings), source (object with name, alias, dataset_id), id (string UUID), meta_data (object with metricTypes), metricMetadata (object with attributes, config, label, name, resource, type), and key (string). If builderId is provided, it updates the existing widget; otherwise, it creates a new one.`,
+This tool allows you to add new visualizations (charts, graphs, tables) to dashboards or modify existing ones. The builderConfig is an array of configuration objects, each containing queries, chart type, and visualization settings. Each builderConfig item should have: with (array), columns (array of strings), source (object with name, alias, dataset_id), id (string UUID), meta_data (object with metricTypes), metricMetadata (object with attributes, config, label, name, resource, type), and key (string). If builderId is provided, it updates the existing widget; otherwise, it creates a new one.`),
+		mcp.WithInputSchema[CreateWidgetInput](),
+	)
 }
 
 func generateWidgetKey(label string) string {
@@ -53,8 +64,30 @@ func generateWidgetKey(label string) string {
 	return fmt.Sprintf("%s_%s", cleaned, randomID)
 }
 
+func getWidgetAppID(widgetType string) int {
+	widgetTypeMap := map[string]int{
+		"time_series_chart": 1,
+		"bar_chart":         2,
+		"pie_chart":         3,
+		"scatter_plot":      4,
+		"data_table":        5,
+		"count_chart":       7,
+		"tree_chart":        8,
+		"top_list_chart":    9,
+		"heatmap_chart":     10,
+		"hexagon_chart":     11,
+		"query_value":       12,
+	}
+
+	if id, ok := widgetTypeMap[widgetType]; ok {
+		return id
+	}
+	return 1
+}
+
 type CreateWidgetInput struct {
 	Label             string                   `json:"label" jsonschema:"The display name for the widget (e.g., 'CPU Usage', 'Error Rate'),required"`
+	WidgetType        string                   `json:"widget_type" jsonschema:"The type of chart/widget to create,required,enum=time_series_chart|bar_chart|data_table|query_value|pie_chart|scatter_plot|count_chart|tree_chart|top_list_chart|heatmap_chart|hexagon_chart"`
 	Key               string                   `json:"key,omitempty" jsonschema:"Optional unique key identifier for the widget"`
 	Description       string                   `json:"description,omitempty" jsonschema:"Optional description explaining what the widget displays"`
 	BuilderConfig     []BuilderConfigItemInput `json:"builderConfig,omitempty" jsonschema:"Widget configuration array containing queries, chart type, display settings, and data sources. Each item should have: columns, source, id, meta_data, metricMetadata, key, group_by, and filter_with"`
@@ -77,7 +110,11 @@ type BuilderConfigItemInput struct {
 	FilterWith     any                                  `json:"filter_with,omitempty" jsonschema:"Filter conditions object with 'and' or 'or' arrays (e.g., {\"and\": [{\"host.id\": {\"=\": \"ai-team2\"}}, {\"host.name\": {\"LIKE\": \"%ai%\"}}]}). This will be converted to ATTRIBUTE_FILTER in the 'with' array"`
 }
 
-func HandleCreateWidget(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input CreateWidgetInput) (*mcp.CallToolResult, map[string]any, error) {
+func HandleCreateWidget(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	input, err := ParseInput[CreateWidgetInput](req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse input: %w", err)
+	}
 	var builderViewOptions *middleware.BuilderViewOptions
 	if input.ReportID > 0 || input.ReportKey != "" || input.ReportName != "" {
 		builderViewOptions = &middleware.BuilderViewOptions{
@@ -139,17 +176,19 @@ func HandleCreateWidget(s ServerInterface, ctx context.Context, req *mcp.CallToo
 		}
 	}
 
+	widgetAppID := getWidgetAppID(input.WidgetType)
+
 	widget := &middleware.CustomWidget{
 		Label:              input.Label,
 		Key:                widgetKey,
 		Description:        input.Description,
 		BuilderConfig:      builderConfig,
 		BuilderViewOptions: builderViewOptions,
+		WidgetAppID:        widgetAppID,
 
 		// Default values (always the same - not exposed in input)
 		BuilderID:       -1,
 		ScopeID:         -1,
-		WidgetAppID:     1,
 		IsClone:         false,
 		Category:        "Metrics",
 		Formulas:        []any{},
@@ -164,37 +203,48 @@ func HandleCreateWidget(s ServerInterface, ctx context.Context, req *mcp.CallToo
 
 	result, err := s.Client().CreateWidget(ctx, widget)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create widget: %w", err)
+		return nil, fmt.Errorf("failed to create widget: %w", err)
 	}
 
 	return ToTextResult(result)
 }
 
-var DeleteWidgetTool = &mcp.Tool{
-	Name: "delete_widget",
-	Description: `Permanently delete a widget from a dashboard.
+func NewDeleteWidgetTool() mcp.Tool {
+	return mcp.NewTool(
+		"delete_widget",
+		mcp.WithDescription(`Permanently delete a widget from a dashboard.
 	
-This tool removes a widget (chart, graph, table) from its dashboard. Warning: This action cannot be undone. The widget configuration and data will be permanently deleted.`,
+This tool removes a widget (chart, graph, table) from its dashboard. Warning: This action cannot be undone. The widget configuration and data will be permanently deleted.`),
+		mcp.WithInputSchema[DeleteWidgetInput](),
+	)
 }
 
 type DeleteWidgetInput struct {
 	BuilderID int `json:"builder_id" jsonschema:"The numeric builder ID of the widget to delete permanently,required"`
 }
 
-func HandleDeleteWidget(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input DeleteWidgetInput) (*mcp.CallToolResult, map[string]any, error) {
-	err := s.Client().DeleteWidget(ctx, input.BuilderID)
+func HandleDeleteWidget(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	input, err := ParseInput[DeleteWidgetInput](req)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to delete widget: %w", err)
+		return nil, fmt.Errorf("failed to parse input: %w", err)
+	}
+
+	err = s.Client().DeleteWidget(ctx, input.BuilderID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to delete widget: %w", err)
 	}
 
 	return ToTextResult(map[string]any{"success": true, "message": "Widget deleted successfully"})
 }
 
-var GetWidgetDataTool = &mcp.Tool{
-	Name: "get_widget_data",
-	Description: `Fetch the actual data and metrics displayed by a specific widget.
+func NewGetWidgetDataTool() mcp.Tool {
+	return mcp.NewTool(
+		"get_widget_data",
+		mcp.WithDescription(`Fetch the actual data and metrics displayed by a specific widget.
 	
-This tool executes the widget's query and returns the visualization data (time series, metrics, logs, traces). Use this to get the current values shown in a widget, analyze trends, or export widget data. The data format depends on the widget type (timeseries, table, single value, etc.).`,
+This tool executes the widget's query and returns the visualization data (time series, metrics, logs, traces). Use this to get the current values shown in a widget, analyze trends, or export widget data. The data format depends on the widget type (timeseries, table, single value, etc.).`),
+		mcp.WithInputSchema[GetWidgetDataInput](),
+	)
 }
 
 type GetWidgetDataInput struct {
@@ -205,7 +255,12 @@ type GetWidgetDataInput struct {
 	UseV2         bool                           `json:"use_v2,omitempty" jsonschema:"Set to true to use the newer v2 data format (default: false)"`
 }
 
-func HandleGetWidgetData(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input GetWidgetDataInput) (*mcp.CallToolResult, map[string]any, error) {
+func HandleGetWidgetData(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	input, err := ParseInput[GetWidgetDataInput](req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse input: %w", err)
+	}
+
 	widget := &middleware.CustomWidget{
 		BuilderID:     input.BuilderID,
 		Key:           input.Key,
@@ -216,17 +271,20 @@ func HandleGetWidgetData(s ServerInterface, ctx context.Context, req *mcp.CallTo
 
 	result, err := s.Client().GetWidgetData(ctx, widget)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get widget data: %w", err)
+		return nil, fmt.Errorf("failed to get widget data: %w", err)
 	}
 
 	return ToTextResult(result)
 }
 
-var GetMultiWidgetDataTool = &mcp.Tool{
-	Name: "get_multi_widget_data",
-	Description: `Fetch data for multiple widgets simultaneously in a single request.
+func NewGetMultiWidgetDataTool() mcp.Tool {
+	return mcp.NewTool(
+		"get_multi_widget_data",
+		mcp.WithDescription(`Fetch data for multiple widgets simultaneously in a single request.
 	
-This tool is optimized for loading data for multiple widgets at once, such as when refreshing an entire dashboard. It's more efficient than calling get_widget_data multiple times. Returns data for all requested widgets in a single response.`,
+This tool is optimized for loading data for multiple widgets at once, such as when refreshing an entire dashboard. It's more efficient than calling get_widget_data multiple times. Returns data for all requested widgets in a single response.`),
+		mcp.WithInputSchema[GetMultiWidgetDataInput](),
+	)
 }
 
 type GetMultiWidgetDataInput struct {
@@ -241,7 +299,12 @@ type WidgetDataRequest struct {
 	UseV2         bool                           `json:"use_v2,omitempty" jsonschema:"Use v2 data format (default: false)"`
 }
 
-func HandleGetMultiWidgetData(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input GetMultiWidgetDataInput) (*mcp.CallToolResult, map[string]any, error) {
+func HandleGetMultiWidgetData(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	input, err := ParseInput[GetMultiWidgetDataInput](req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse input: %w", err)
+	}
+
 	widgets := make([]middleware.CustomWidget, len(input.Widgets))
 	for i, w := range input.Widgets {
 		widgets[i] = middleware.CustomWidget{
@@ -255,18 +318,21 @@ func HandleGetMultiWidgetData(s ServerInterface, ctx context.Context, req *mcp.C
 
 	result, err := s.Client().GetMultiWidgetData(ctx, widgets)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to get multi widget data: %w", err)
+		return nil, fmt.Errorf("failed to get multi widget data: %w", err)
 	}
 
 	// Return as JSON text only (no structuredContent)
 	return ToTextResult(map[string]any{"widgets": result})
 }
 
-var UpdateWidgetLayoutsTool = &mcp.Tool{
-	Name: "update_widget_layouts",
-	Description: `Update the position and size of widgets on a dashboard.
+func NewUpdateWidgetLayoutsTool() mcp.Tool {
+	return mcp.NewTool(
+		"update_widget_layouts",
+		mcp.WithDescription(`Update the position and size of widgets on a dashboard.
 	
-This tool modifies the layout (position, size) of multiple widgets on a dashboard. Use this to rearrange widgets, resize them, or optimize dashboard layout. The dashboard uses a grid system where x,y represent position and w,h represent size in grid units.`,
+This tool modifies the layout (position, size) of multiple widgets on a dashboard. Use this to rearrange widgets, resize them, or optimize dashboard layout. The dashboard uses a grid system where x,y represent position and w,h represent size in grid units.`),
+		mcp.WithInputSchema[UpdateWidgetLayoutsInput](),
+	)
 }
 
 type UpdateWidgetLayoutsInput struct {
@@ -281,7 +347,12 @@ type LayoutItemInput struct {
 	ScopeID int `json:"scope_id,omitempty" jsonschema:"The scope ID of the widget to update layout for"`
 }
 
-func HandleUpdateWidgetLayouts(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input UpdateWidgetLayoutsInput) (*mcp.CallToolResult, map[string]any, error) {
+func HandleUpdateWidgetLayouts(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	input, err := ParseInput[UpdateWidgetLayoutsInput](req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse input: %w", err)
+	}
+
 	layouts := make([]middleware.LayoutItem, len(input.Layouts))
 	for i, l := range input.Layouts {
 		layouts[i] = middleware.LayoutItem{
@@ -297,9 +368,9 @@ func HandleUpdateWidgetLayouts(s ServerInterface, ctx context.Context, req *mcp.
 		Layouts: layouts,
 	}
 
-	err := s.Client().UpdateWidgetLayouts(ctx, layoutReq)
+	err = s.Client().UpdateWidgetLayouts(ctx, layoutReq)
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to update widget layouts: %w", err)
+		return nil, fmt.Errorf("failed to update widget layouts: %w", err)
 	}
 
 	return ToTextResult(map[string]any{"success": true, "message": "Widget layouts updated successfully"})

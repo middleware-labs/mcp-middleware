@@ -2,17 +2,21 @@ package tools
 
 import (
 	"context"
+	"fmt"
 
 	"mcp-middleware/middleware"
 
-	"github.com/modelcontextprotocol/go-sdk/mcp"
+	"github.com/mark3labs/mcp-go/mcp"
 )
 
-var ListDashboardsTool = &mcp.Tool{
-	Name: "list_dashboards",
-	Description: `Get a list of dashboards (i.e. reports) with advanced filtering and pagination support.
+func NewListDashboardsTool() mcp.Tool {
+	return mcp.NewTool(
+		"list_dashboards",
+		mcp.WithDescription(`Get a list of dashboards (i.e. reports) with advanced filtering and pagination support.
 	
-This tool retrieves dashboards from Middleware.io with support for searching, filtering by various criteria, and pagination. Use this to discover available dashboards, find specific dashboards by name, or filter by ownership and usage patterns.`,
+This tool retrieves dashboards from Middleware.io with support for searching, filtering by various criteria, and pagination. Use this to discover available dashboards, find specific dashboards by name, or filter by ownership and usage patterns.`),
+		mcp.WithInputSchema[ListDashboardsInput](),
+	)
 }
 
 type ListDashboardsInput struct {
@@ -23,7 +27,12 @@ type ListDashboardsInput struct {
 	DisplayScope string `json:"display_scope,omitempty" jsonschema:"Filter dashboards by comma-separated list of display scopes"`
 }
 
-func HandleListDashboards(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input ListDashboardsInput) (*mcp.CallToolResult, map[string]any, error) {
+func HandleListDashboards(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	input, err := ParseInput[ListDashboardsInput](req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse input: %w", err)
+	}
+
 	params := &middleware.GetDashboardsParams{
 		Limit:        input.Limit,
 		Offset:       input.Offset,
@@ -34,37 +43,48 @@ func HandleListDashboards(s ServerInterface, ctx context.Context, req *mcp.CallT
 
 	result, err := s.Client().GetDashboards(ctx, params)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	return ToTextResult(result)
 }
 
-var GetDashboardTool = &mcp.Tool{
-	Name: "get_dashboard",
-	Description: `Get detailed information about a specific dashboard by its unique key.
+func NewGetDashboardTool() mcp.Tool {
+	return mcp.NewTool(
+		"get_dashboard",
+		mcp.WithDescription(`Get detailed information about a specific dashboard by its unique key.
 	
-This tool retrieves complete dashboard configuration including widgets, layout, metadata, and settings. Use this when you need to inspect or work with a specific dashboard's structure and content.`,
+This tool retrieves complete dashboard configuration including widgets, layout, metadata, and settings. Use this when you need to inspect or work with a specific dashboard's structure and content.`),
+		mcp.WithInputSchema[GetDashboardInput](),
+	)
 }
 
 type GetDashboardInput struct {
 	ReportKey string `json:"report_key" jsonschema:"The unique key identifier of the dashboard to retrieve,required"`
 }
 
-func HandleGetDashboard(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input GetDashboardInput) (*mcp.CallToolResult, map[string]any, error) {
+func HandleGetDashboard(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	input, err := ParseInput[GetDashboardInput](req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse input: %w", err)
+	}
+
 	result, err := s.Client().GetDashboardByKey(ctx, input.ReportKey)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	return ToTextResult(result)
 }
 
-var CreateDashboardTool = &mcp.Tool{
-	Name: "create_dashboard",
-	Description: `Create a new custom dashboard in Middleware.io.
+func NewCreateDashboardTool() mcp.Tool {
+	return mcp.NewTool(
+		"create_dashboard",
+		mcp.WithDescription(`Create a new custom dashboard in Middleware.io.
 	
-This tool creates a new dashboard with the specified configuration. Dashboards can be public (shared with team) or private (personal). You can organize dashboards using display scopes and provide custom keys for easier identification.`,
+This tool creates a new dashboard with the specified configuration. Dashboards can be public (shared with team) or private (personal). You can organize dashboards using display scopes and provide custom keys for easier identification.`),
+		mcp.WithInputSchema[CreateDashboardInput](),
+	)
 }
 
 type CreateDashboardInput struct {
@@ -74,7 +94,12 @@ type CreateDashboardInput struct {
 	Key         string `json:"key,omitempty" jsonschema:"Optional unique key identifier for the dashboard. If not provided, will be auto-generated"`
 }
 
-func HandleCreateDashboard(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input CreateDashboardInput) (*mcp.CallToolResult, map[string]any, error) {
+func HandleCreateDashboard(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	input, err := ParseInput[CreateDashboardInput](req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse input: %w", err)
+	}
+
 	dashboardReq := &middleware.UpsertReportRequest{
 		Label:        input.Label,
 		Visibility:   input.Visibility,
@@ -85,17 +110,20 @@ func HandleCreateDashboard(s ServerInterface, ctx context.Context, req *mcp.Call
 
 	result, err := s.Client().CreateDashboard(ctx, dashboardReq)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	return ToTextResult(result)
 }
 
-var UpdateDashboardTool = &mcp.Tool{
-	Name: "update_dashboard",
-	Description: `Update an existing dashboard's configuration and metadata.
+func NewUpdateDashboardTool() mcp.Tool {
+	return mcp.NewTool(
+		"update_dashboard",
+		mcp.WithDescription(`Update an existing dashboard's configuration and metadata.
 	
-This tool modifies an existing dashboard identified by its ID. You can update the name, description, visibility settings, and display scope. Use this to rename dashboards, change sharing settings, or reorganize dashboard categories.`,
+This tool modifies an existing dashboard identified by its ID. You can update the name, description, visibility settings, and display scope. Use this to rename dashboards, change sharing settings, or reorganize dashboard categories.`),
+		mcp.WithInputSchema[UpdateDashboardInput](),
+	)
 }
 
 type UpdateDashboardInput struct {
@@ -106,7 +134,12 @@ type UpdateDashboardInput struct {
 	Key         string `json:"key,omitempty" jsonschema:"Updated unique key identifier. Must be unique across all dashboards"`
 }
 
-func HandleUpdateDashboard(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input UpdateDashboardInput) (*mcp.CallToolResult, map[string]any, error) {
+func HandleUpdateDashboard(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	input, err := ParseInput[UpdateDashboardInput](req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse input: %w", err)
+	}
+
 	dashboardReq := &middleware.UpsertReportRequest{
 		ID:           input.ID,
 		Label:        input.Label,
@@ -118,37 +151,48 @@ func HandleUpdateDashboard(s ServerInterface, ctx context.Context, req *mcp.Call
 
 	result, err := s.Client().UpdateDashboard(ctx, input.ID, dashboardReq)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	return ToTextResult(result)
 }
 
-var DeleteDashboardTool = &mcp.Tool{
-	Name: "delete_dashboard",
-	Description: `Permanently delete a dashboard and all its widgets.
+func NewDeleteDashboardTool() mcp.Tool {
+	return mcp.NewTool(
+		"delete_dashboard",
+		mcp.WithDescription(`Permanently delete a dashboard and all its widgets.
 	
-This tool removes a dashboard from Middleware.io. Warning: This action cannot be undone. All widgets and configurations associated with the dashboard will be permanently deleted.`,
+This tool removes a dashboard from Middleware.io. Warning: This action cannot be undone. All widgets and configurations associated with the dashboard will be permanently deleted.`),
+		mcp.WithInputSchema[DeleteDashboardInput](),
+	)
 }
 
 type DeleteDashboardInput struct {
 	ID int `json:"id" jsonschema:"The numeric ID of the dashboard to delete permanently,required"`
 }
 
-func HandleDeleteDashboard(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input DeleteDashboardInput) (*mcp.CallToolResult, map[string]any, error) {
-	err := s.Client().DeleteDashboard(ctx, input.ID)
+func HandleDeleteDashboard(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	input, err := ParseInput[DeleteDashboardInput](req)
 	if err != nil {
-		return nil, nil, err
+		return nil, fmt.Errorf("failed to parse input: %w", err)
+	}
+
+	err = s.Client().DeleteDashboard(ctx, input.ID)
+	if err != nil {
+		return nil, err
 	}
 
 	return ToTextResult(map[string]any{"success": true, "message": "Dashboard deleted successfully"})
 }
 
-var CloneDashboardTool = &mcp.Tool{
-	Name: "clone_dashboard",
-	Description: `Create a copy of an existing dashboard with all its widgets and configuration.
+func NewCloneDashboardTool() mcp.Tool {
+	return mcp.NewTool(
+		"clone_dashboard",
+		mcp.WithDescription(`Create a copy of an existing dashboard with all its widgets and configuration.
 	
-This tool duplicates an existing dashboard, creating a new dashboard with the same widgets, layout, and settings. Useful for creating variations of dashboards or starting from a template. The cloned dashboard will have a new ID and can have different visibility settings.`,
+This tool duplicates an existing dashboard, creating a new dashboard with the same widgets, layout, and settings. Useful for creating variations of dashboards or starting from a template. The cloned dashboard will have a new ID and can have different visibility settings.`),
+		mcp.WithInputSchema[CloneDashboardInput](),
+	)
 }
 
 type CloneDashboardInput struct {
@@ -158,7 +202,12 @@ type CloneDashboardInput struct {
 	SourceKey   string `json:"source_key,omitempty" jsonschema:"The unique key of the source dashboard to clone from"`
 }
 
-func HandleCloneDashboard(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input CloneDashboardInput) (*mcp.CallToolResult, map[string]any, error) {
+func HandleCloneDashboard(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	input, err := ParseInput[CloneDashboardInput](req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse input: %w", err)
+	}
+
 	dashboardReq := &middleware.UpsertReportRequest{
 		Label:        input.Label,
 		Visibility:   input.Visibility,
@@ -169,17 +218,20 @@ func HandleCloneDashboard(s ServerInterface, ctx context.Context, req *mcp.CallT
 
 	result, err := s.Client().CloneDashboard(ctx, dashboardReq)
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
 
 	return ToTextResult(result)
 }
 
-var SetDashboardFavoriteTool = &mcp.Tool{
-	Name: "set_dashboard_favorite",
-	Description: `Mark a dashboard as favorite or remove it from favorites.
+func NewSetDashboardFavoriteTool() mcp.Tool {
+	return mcp.NewTool(
+		"set_dashboard_favorite",
+		mcp.WithDescription(`Mark a dashboard as favorite or remove it from favorites.
 	
-This tool allows you to favorite dashboards for quick access. Favorited dashboards appear at the top of dashboard lists and can be filtered using the 'favorite' filter in list_dashboards. Use this to bookmark frequently accessed dashboards.`,
+This tool allows you to favorite dashboards for quick access. Favorited dashboards appear at the top of dashboard lists and can be filtered using the 'favorite' filter in list_dashboards. Use this to bookmark frequently accessed dashboards.`),
+		mcp.WithInputSchema[SetDashboardFavoriteInput](),
+	)
 }
 
 type SetDashboardFavoriteInput struct {
@@ -187,10 +239,15 @@ type SetDashboardFavoriteInput struct {
 	Favorite bool `json:"favorite" jsonschema:"Set to true to add dashboard to favorites, false to remove from favorites,required"`
 }
 
-func HandleSetDashboardFavorite(s ServerInterface, ctx context.Context, req *mcp.CallToolRequest, input SetDashboardFavoriteInput) (*mcp.CallToolResult, map[string]any, error) {
-	err := s.Client().SetDashboardFavorite(ctx, input.ReportID, input.Favorite)
+func HandleSetDashboardFavorite(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	input, err := ParseInput[SetDashboardFavoriteInput](req)
 	if err != nil {
-		return nil, nil, err
+		return nil, fmt.Errorf("failed to parse input: %w", err)
+	}
+
+	err = s.Client().SetDashboardFavorite(ctx, input.ReportID, input.Favorite)
+	if err != nil {
+		return nil, err
 	}
 
 	return ToTextResult(map[string]any{"success": true, "message": "Dashboard favorite status updated"})
