@@ -32,6 +32,8 @@ func NewClient(baseURL, apiKey string) *Client {
 }
 
 func (c *Client) doRequest(ctx context.Context, method, path string, body any, result any) error {
+	url := c.baseURL + "/api/v1" + path
+
 	var reqBody io.Reader
 	if body != nil {
 		jsonData, err := json.Marshal(body)
@@ -41,7 +43,6 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any, r
 		reqBody = bytes.NewBuffer(jsonData)
 	}
 
-	url := c.baseURL + "/api/v1" + path
 	req, err := http.NewRequestWithContext(ctx, method, url, reqBody)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)

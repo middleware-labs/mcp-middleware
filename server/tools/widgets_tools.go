@@ -51,7 +51,15 @@ func NewCreateWidgetTool() mcp.Tool {
 		"create_widget",
 		mcp.WithDescription(`Create a new widget or update an existing widget on a dashboard.
 	
-This tool allows you to add new visualizations (charts, graphs, tables) to dashboards or modify existing ones. The builderConfig is an array of configuration objects, each containing queries, chart type, and visualization settings. Each builderConfig item should have: with (array), columns (array of strings), source (object with name, alias, dataset_id), id (string UUID), meta_data (object with metricTypes), metricMetadata (object with attributes, config, label, name, resource, type), and key (string). If builderId is provided, it updates the existing widget; otherwise, it creates a new one.`),
+This tool allows you to add new visualizations (charts, graphs, tables) to dashboards or modify existing ones. The builderConfig is an array of configuration objects, each containing queries, chart type, and visualization settings. Each builderConfig item should have: with (array), columns (array of strings), source (object with name, alias, dataset_id), id (string UUID), meta_data (object with metricTypes), metricMetadata (object with attributes, config, label, name, resource, type), and key (string). If builderId is provided, it updates the existing widget; otherwise, it creates a new one.
+
+IMPORTANT - Source Name (Resource Type):
+- The 'source.name' field in builderConfig MUST be a resource type that is supported by Middleware and returned by the get_resources tool
+- You MUST first call the get_resources tool to discover available resource types in your environment
+- You can ONLY use resource type names that are returned by the get_resources tool
+- Do not use arbitrary or guessed resource names - only use the exact resource type names returned by get_resources
+- Examples of valid source.name values (if returned by get_resources): 'host', 'container', 'log', 'trace', 'k8s.pod', 'database', 'service', etc.
+- The source.name identifies which resource type the widget will query data from, and it must match a resource type that Middleware supports and has data for`),
 		mcp.WithInputSchema[CreateWidgetInput](),
 	)
 }
@@ -90,7 +98,7 @@ type CreateWidgetInput struct {
 	WidgetType        string                   `json:"widget_type" jsonschema:"The type of chart/widget to create,required,enum=time_series_chart|bar_chart|data_table|query_value|pie_chart|scatter_plot|count_chart|tree_chart|top_list_chart|heatmap_chart|hexagon_chart"`
 	Key               string                   `json:"key,omitempty" jsonschema:"Optional unique key identifier for the widget"`
 	Description       string                   `json:"description,omitempty" jsonschema:"Optional description explaining what the widget displays"`
-	BuilderConfig     []BuilderConfigItemInput `json:"builderConfig,omitempty" jsonschema:"Widget configuration array containing queries, chart type, display settings, and data sources. Each item should have: columns, source, id, meta_data, metricMetadata, key, group_by, and filter_with"`
+	BuilderConfig     []BuilderConfigItemInput `json:"builderConfig" jsonschema:"Widget configuration array containing queries, chart type, display settings, and data sources. Each item should have: columns, source, id, meta_data, metricMetadata, key, group_by, and filter_with"`
 	ReportID          int                      `json:"report_id,omitempty" jsonschema:"The numeric ID of the dashboard (report) where this widget will be created"`
 	ReportKey         string                   `json:"report_key,omitempty" jsonschema:"The unique key identifier of the dashboard (report) where this widget will be created"`
 	ReportName        string                   `json:"report_name,omitempty" jsonschema:"The name of the dashboard (report) where this widget will be created"`
@@ -101,7 +109,7 @@ type CreateWidgetInput struct {
 
 type BuilderConfigItemInput struct {
 	Columns        []string                             `json:"columns,omitempty" jsonschema:"Array of column/metric names to query (e.g., [\"avg(k8s.node.memory.utilization,value(avg))\"])"`
-	Source         *middleware.BuilderConfigSource      `json:"source,omitempty" jsonschema:"Data source configuration with name, alias, and dataset_id"`
+	Source         *middleware.BuilderConfigSource      `json:"source,omitempty" jsonschema:"Data source configuration with name, alias, and dataset_id. IMPORTANT: The source.name field MUST be a resource type that is supported by Middleware and returned by the get_resources tool. You MUST first call the get_resources tool to discover available resource types, then use only those exact resource type names here. Do not use arbitrary or guessed resource names. Examples (if returned by get_resources): 'host', 'container', 'log', 'trace', 'k8s.pod', 'database', 'service', etc. The source.name identifies which resource type the widget will query data from."`
 	ID             string                               `json:"id,omitempty" jsonschema:"Unique identifier for this config item (UUID format)"`
 	MetaData       *middleware.BuilderConfigMetaData    `json:"meta_data,omitempty" jsonschema:"Metadata containing metricTypes mapping"`
 	MetricMetadata map[string]middleware.MetricMetadata `json:"metricMetadata,omitempty" jsonschema:"Map of metric names to their metadata. Each key is a metric name (e.g., \"k8s.node.cpu.utilization_percent\") and value is the metadata object with name, label, resource, type, attributes, and config"`

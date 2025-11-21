@@ -16,6 +16,11 @@ func NewListErrorsTool() mcp.Tool {
 	
 This tool retrieves all error incidents from the Middleware.io system. Use this to monitor system health, identify ongoing issues, and track error patterns. Results can be filtered by time range, status, and search terms, and support pagination.
 
+IMPORTANT - Time Parameters:
+- The 'from_ts' and 'to_ts' parameters MUST be in milliseconds (Unix timestamp * 1000)
+- Example: For January 1, 2024 00:00:00 UTC, use 1704067200000 (not 1704067200)
+- To convert seconds to milliseconds, multiply by 1000
+
 IMPORTANT: Each error/incident in the response includes an 'issue_url' field that contains a direct, clickable URL link to view the issue details in the Middleware.io web interface. This URL can be used to redirect users to the full issue details page where they can see complete context, occurrence history, related information, and all technical details. The URL format is: https://[base-url]/ops-ai?fingerprint=[fingerprint]. Always include this URL when presenting error information to users so they can easily navigate to view more details.`),
 		mcp.WithInputSchema[ListErrorsInput](),
 	)
@@ -64,7 +69,12 @@ func NewGetErrorDetailsTool() mcp.Tool {
 		"get_error_details",
 		mcp.WithDescription(`Get detailed information about a specific error/incident by its fingerprint.
 	
-This tool retrieves comprehensive details about a specific error incident from the Middleware.io system. Use this to investigate a particular error, view its full context, occurrence history, and related information.`),
+This tool retrieves comprehensive details about a specific error incident from the Middleware.io system. Use this to investigate a particular error, view its full context, occurrence history, and related information.
+
+IMPORTANT - Time Parameters:
+- The 'from_ts' and 'to_ts' parameters MUST be in milliseconds (Unix timestamp * 1000)
+- Example: For January 1, 2024 00:00:00 UTC, use 1704067200000 (not 1704067200)
+- To convert seconds to milliseconds, multiply by 1000`),
 		mcp.WithInputSchema[GetErrorDetailsInput](),
 	)
 }

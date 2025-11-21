@@ -25,21 +25,33 @@ func NewGetMetricsTool() mcp.Tool {
 	
 This tool retrieves metadata about available metrics, filters, and grouping options in your Middleware.io environment. Use this to discover what metrics are available for a specific resource (e.g., host CPU metrics, database query metrics), what filters can be applied (e.g., filter by service name, environment), or what grouping dimensions are available (e.g., group by region, pod name).
 
+IMPORTANT - Data Type:
+- The 'data_type' parameter can ONLY be one of these three values: 'metrics', 'filters', or 'groupby'
+- 'metrics': Retrieve metric names available for resources
+- 'filters': Get filter dimensions that can be applied to queries
+- 'groupby': Get grouping tags for aggregating metrics by dimension
+
+IMPORTANT - Resource Selection:
+- The 'resource' or 'resources' parameters can ONLY be used when data_type is 'metrics' or 'filters'
+- For the 'resource' or 'resources' parameters, you MUST first call the get_resources tool to discover available resource types in your environment
+- You can ONLY use resource type names that are returned by the get_resources tool
+- Do not use arbitrary or guessed resource names - only use the exact resource type names returned by get_resources
+
 Common use cases:
-- Find all metrics for a specific resource type (host, container, database)
-- Discover available filters for narrowing down data
-- Get groupby tags for aggregating metrics by dimension`),
+- Find all metrics for a specific resource type (host, container, database) - first call get_resources to get available resource types, then use data_type='metrics'
+- Discover available filters for narrowing down data - use data_type='filters' (optionally with resource/resources)
+- Get groupby tags for aggregating metrics by dimension - use data_type='groupby' (requires 'metric' parameter)`),
 		mcp.WithInputSchema[GetMetricsInput](),
 	)
 }
 
 type GetMetricsInput struct {
-	DataType                string     `json:"data_type" jsonschema:"Type of data to fetch. Valid values: 'metrics' (metric names), 'filters' (filter dimensions), 'groupby' (grouping tags),required"`
+	DataType                string     `json:"data_type" jsonschema:"Type of data to fetch. DataType is the type of data that is being fetched. Must be one of: 'metrics' (metric names), 'filters' (filter dimensions), 'groupby' (grouping tags),required,enum=metrics|filters|groupby"`
 	WidgetType              WidgetType `json:"widget_type" jsonschema:"Widget type for the query. Must be one of: 'timeseries', 'list', or 'queryValue',required,enum=timeseries|list|queryValue"`
 	KpiType                 int        `json:"kpi_type,omitempty" jsonschema:"Single KPI type filter. 1=Metric (infrastructure/APM metrics), 2=Log (log data), 3=Trace (distributed tracing data)"`
 	KpiTypes                []int      `json:"kpi_types,omitempty" jsonschema:"Array of KPI types to include. Use this for multi-type queries"`
-	Resource                string     `json:"resource,omitempty" jsonschema:"Resource name to filter by (e.g., 'host', 'process', 'container', 'database')"`
-	Resources               []string   `json:"resources,omitempty" jsonschema:"Array of resource names for multi-resource queries"`
+	Resource                string     `json:"resource,omitempty" jsonschema:"The resource type name obtained from calling get_resources. This identifies which resource type to filter metrics by and correlates the data source. IMPORTANT: You can ONLY use resource type names that are returned by the get_resources tool. You must first call get_resources to discover available resources, then use only those exact resource type names here. Examples: 'host', 'container', 'log', 'trace', 'k8s.pod', 'database', etc. Always use the exact resource type name returned by get_resources."`
+	Resources               []string   `json:"resources,omitempty" jsonschema:"Array of resource type names obtained from calling get_resources. Use this for multi-resource queries. IMPORTANT: You can ONLY use resource type names that are returned by the get_resources tool. You must first call get_resources to discover available resources, then use only those exact resource type names here. Each resource name should be the exact resource type name returned by get_resources (e.g., ['host', 'container', 'trace'])."`
 	Metric                  string     `json:"metric,omitempty" jsonschema:"Specific metric name (required when dataType is 'groupby' to get groupby tags for this metric)"`
 	Page                    int        `json:"page,omitempty" jsonschema:"Page number for paginated results (default: 1)"`
 	Limit                   int        `json:"limit,omitempty" jsonschema:"Number of items per page (default: 100, max: varies by data type)"`
