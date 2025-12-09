@@ -359,7 +359,7 @@ type AttributeFilterValue struct {
 }
 
 type BuilderConfigSource struct {
-	Name      string `json:"name,omitempty"`
+	Name      string `json:"name,omitempty" jsonschema:"The resource type name obtained from calling get_resources. This identifies which resource type the metric/data belongs to and correlates the data source. Examples: 'host', 'container', 'log', 'trace', 'k8s.pod', 'database', etc. Always use the exact resource type name returned by get_resources."`
 	Alias     string `json:"alias,omitempty"`
 	DatasetID *int   `json:"dataset_id,omitempty"`
 }
