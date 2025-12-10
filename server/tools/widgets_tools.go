@@ -25,6 +25,7 @@ This tool retrieves all widgets (charts, graphs, tables) that belong to a dashbo
 type ListWidgetsInput struct {
 	ReportID     int    `json:"report_id,omitempty" jsonschema:"The numeric ID of the dashboard (report) to filter widgets by"`
 	DisplayScope string `json:"display_scope,omitempty" jsonschema:"The display scope to filter widgets by (e.g., 'infrastructure', 'apm', 'logs')"`
+	Message      string `json:"message" jsonschema:"Message to know which widgets are being listed. Length should be less than 100 characters."`
 }
 
 func HandleListWidgets(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -228,7 +229,9 @@ This tool removes a widget (chart, graph, table) from its dashboard. Warning: Th
 }
 
 type DeleteWidgetInput struct {
-	BuilderID int `json:"builder_id" jsonschema:"The numeric builder ID of the widget to delete permanently,required"`
+	BuilderID   int    `json:"builder_id" jsonschema:"The numeric builder ID of the widget to delete permanently,required"`
+	Message     string `json:"message" jsonschema:"Message to know which widget is being deleted."`
+	WidgetLabel string `json:"widget_label" jsonschema:"Label of the widget to delete."`
 }
 
 func HandleDeleteWidget(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -344,7 +347,9 @@ This tool modifies the layout (position, size) of multiple widgets on a dashboar
 }
 
 type UpdateWidgetLayoutsInput struct {
-	Layouts []LayoutItemInput `json:"layouts" jsonschema:"Array of layout specifications for each widget. Each item defines position and size in the dashboard grid,required"`
+	Layouts          []LayoutItemInput `json:"layouts" jsonschema:"Array of layout specifications for each widget. Each item defines position and size in the dashboard grid,required"`
+	Message          string            `json:"message" jsonschema:"Message to know which widgets are being updated. Length should be less than 100 characters."`
+	OperationMessage string            `json:"operation_message" jsonschema:"Message to know the operation being completed. Example: 'Updating widget CPU Usage layouts successfully' Length should be less than 100 characters."`
 }
 
 type LayoutItemInput struct {
@@ -381,5 +386,5 @@ func HandleUpdateWidgetLayouts(s ServerInterface, ctx context.Context, req mcp.C
 		return nil, fmt.Errorf("failed to update widget layouts: %w", err)
 	}
 
-	return ToTextResult(map[string]any{"success": true, "message": "Widget layouts updated successfully"})
+	return ToTextResult(map[string]any{"success": true, "message": input.OperationMessage})
 }
