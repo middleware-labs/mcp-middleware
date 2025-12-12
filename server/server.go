@@ -21,7 +21,7 @@ type Server struct {
 }
 
 func New(cfg *config.Config) *Server {
-	client := middleware.NewClient(cfg.MiddlewareBaseURL, cfg.MiddlewareAPIKey)
+	client := middleware.NewClientWithAuth(cfg.MiddlewareBaseURL, cfg.MiddlewareAPIKey, cfg.AuthorizationToken)
 
 	mcpServer := server.NewMCPServer("middleware-mcp-server", "1.0.0")
 

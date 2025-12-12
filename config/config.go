@@ -10,8 +10,9 @@ import (
 
 type Config struct {
 	// Middleware API Configuration
-	MiddlewareAPIKey  string
-	MiddlewareBaseURL string
+	MiddlewareAPIKey   string
+	AuthorizationToken string
+	MiddlewareBaseURL  string
 
 	// Application Mode: stdio, http, sse
 	AppMode string
@@ -29,15 +30,16 @@ func Load() (*Config, error) {
 	_ = godotenv.Load()
 
 	cfg := &Config{
-		MiddlewareAPIKey:  os.Getenv("MIDDLEWARE_API_KEY"),
-		MiddlewareBaseURL: os.Getenv("MIDDLEWARE_BASE_URL"),
-		AppMode:           getEnvOrDefault("APP_MODE", "stdio"),
-		AppHost:           getEnvOrDefault("APP_HOST", "localhost"),
-		AppPort:           getEnvOrDefault("APP_PORT", "8080"),
-		ExcludedTools:     make(map[string]bool),
+		MiddlewareAPIKey:   os.Getenv("MIDDLEWARE_API_KEY"),
+		AuthorizationToken: os.Getenv("AUTHORIZATION"),
+		MiddlewareBaseURL:  os.Getenv("MIDDLEWARE_BASE_URL"),
+		AppMode:            getEnvOrDefault("APP_MODE", "stdio"),
+		AppHost:            getEnvOrDefault("APP_HOST", "localhost"),
+		AppPort:            getEnvOrDefault("APP_PORT", "8080"),
+		ExcludedTools:      make(map[string]bool),
 	}
 
-	if cfg.MiddlewareAPIKey == "" {
+	if cfg.MiddlewareAPIKey == "" && cfg.AuthorizationToken == "" {
 		return nil, fmt.Errorf("MIDDLEWARE_API_KEY is required")
 	}
 	if cfg.MiddlewareBaseURL == "" {

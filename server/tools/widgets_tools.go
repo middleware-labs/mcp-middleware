@@ -60,7 +60,12 @@ IMPORTANT - Source Name (Resource Type):
 - You can ONLY use resource type names that are returned by the get_resources tool
 - Do not use arbitrary or guessed resource names - only use the exact resource type names returned by get_resources
 - Examples of valid source.name values (if returned by get_resources): 'host', 'container', 'log', 'trace', 'k8s.pod', 'database', 'service', etc.
-- The source.name identifies which resource type the widget will query data from, and it must match a resource type that Middleware supports and has data for`),
+- The source.name identifies which resource type the widget will query data from, and it must match a resource type that Middleware supports and has data for
+IMPORTANT - Dashboard ID:
+- The reportId field is the Dashboard ID.
+- When creating or updating a widget, always pass the desired dashboard's ID as reportId.
+- Widgets will only be created or updated on the dashboard specified by this reportId.
+`),
 		mcp.WithInputSchema[CreateWidgetInput](),
 	)
 }
@@ -100,12 +105,13 @@ type CreateWidgetInput struct {
 	Key               string                   `json:"key,omitempty" jsonschema:"Optional unique key identifier for the widget"`
 	Description       string                   `json:"description,omitempty" jsonschema:"Optional description explaining what the widget displays"`
 	BuilderConfig     []BuilderConfigItemInput `json:"builderConfig" jsonschema:"Widget configuration array containing queries, chart type, display settings, and data sources. Each item should have: columns, source, id, meta_data, metricMetadata, key, group_by, and filter_with"`
-	ReportID          int                      `json:"report_id,omitempty" jsonschema:"The numeric ID of the dashboard (report) where this widget will be created"`
+	ReportID          int                      `json:"report_id" jsonschema:"The numeric ID of the dashboard ID (Report ID) where this widget will be created"`
 	ReportKey         string                   `json:"report_key,omitempty" jsonschema:"The unique key identifier of the dashboard (report) where this widget will be created"`
 	ReportName        string                   `json:"report_name,omitempty" jsonschema:"The name of the dashboard (report) where this widget will be created"`
 	ReportDescription string                   `json:"report_description,omitempty" jsonschema:"Optional description of the dashboard (report)"`
 	ReportMetadata    any                      `json:"report_metadata,omitempty" jsonschema:"Optional metadata for the dashboard (report)"`
 	DisableUserEdit   bool                     `json:"disable_user_edit,omitempty" jsonschema:"Whether to disable user editing of the widget (default: false)"`
+	Layout            *LayoutItemInput         `json:"layout,omitempty" jsonschema:"Optional layout for the widget including coordinates and size minimum size is 4x5"`
 }
 
 type BuilderConfigItemInput struct {
@@ -187,6 +193,32 @@ func HandleCreateWidget(s ServerInterface, ctx context.Context, req mcp.CallTool
 
 	widgetAppID := getWidgetAppID(input.WidgetType)
 
+	defaultLayout := middleware.LayoutItem{
+		X: 0,
+		Y: 0,
+		W: 4,
+		H: 5,
+	}
+
+	var layout *middleware.LayoutItem
+	if input.Layout != nil {
+		layout = &middleware.LayoutItem{
+			X: defaultLayout.X,
+			Y: defaultLayout.Y,
+			W: input.Layout.W,
+			H: input.Layout.H,
+		}
+
+		if layout.W == 0 {
+			layout.W = defaultLayout.W
+		}
+		if layout.H == 0 {
+			layout.H = defaultLayout.H
+		}
+	} else {
+		layout = &defaultLayout
+	}
+
 	widget := &middleware.CustomWidget{
 		Label:              input.Label,
 		Key:                widgetKey,
@@ -202,12 +234,7 @@ func HandleCreateWidget(s ServerInterface, ctx context.Context, req mcp.CallTool
 		Category:        "Metrics",
 		Formulas:        []any{},
 		DontRefreshData: false,
-		Layout: &middleware.LayoutItem{
-			X: 0,
-			Y: 0,
-			W: 4,
-			H: 5,
-		},
+		Layout:          layout,
 	}
 
 	result, err := s.Client().CreateWidget(ctx, widget)
@@ -355,8 +382,8 @@ type UpdateWidgetLayoutsInput struct {
 type LayoutItemInput struct {
 	X       int `json:"x" jsonschema:"Horizontal position in the grid (0-based index from left)"`
 	Y       int `json:"y" jsonschema:"Vertical position in the grid (0-based index from top)"`
-	W       int `json:"w" jsonschema:"Width in grid units"`
-	H       int `json:"h" jsonschema:"Height in grid units"`
+	W       int `json:"w" jsonschema:"Width in grid units between 1 and 12 minimum size is 4"`
+	H       int `json:"h" jsonschema:"Height in grid units between 1 and 12 minimum size is 5"`
 	ScopeID int `json:"scope_id,omitempty" jsonschema:"The scope ID of the widget to update layout for"`
 }
 

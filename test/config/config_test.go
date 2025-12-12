@@ -11,9 +11,11 @@ func TestLoad(t *testing.T) {
 	// Set required environment variables
 	os.Setenv("MIDDLEWARE_API_KEY", "test-api-key")
 	os.Setenv("MIDDLEWARE_BASE_URL", "https://test.middleware.io")
+	os.Setenv("AUTHORIZATION", "Bearer test-token")
 	defer func() {
 		os.Unsetenv("MIDDLEWARE_API_KEY")
 		os.Unsetenv("MIDDLEWARE_BASE_URL")
+		os.Unsetenv("AUTHORIZATION")
 		os.Unsetenv("APP_MODE")
 		os.Unsetenv("APP_HOST")
 		os.Unsetenv("APP_PORT")
@@ -26,6 +28,10 @@ func TestLoad(t *testing.T) {
 
 	if cfg.MiddlewareAPIKey != "test-api-key" {
 		t.Errorf("Expected API key 'test-api-key', got '%s'", cfg.MiddlewareAPIKey)
+	}
+
+	if cfg.AuthorizationToken != "Bearer test-token" {
+		t.Errorf("Expected Authorization 'Bearer test-token', got '%s'", cfg.AuthorizationToken)
 	}
 
 	if cfg.MiddlewareBaseURL != "https://test.middleware.io" {
@@ -45,17 +51,41 @@ func TestLoad(t *testing.T) {
 	}
 }
 
-func TestLoadMissingAPIKey(t *testing.T) {
+func TestLoadWithAuthorizationOnly(t *testing.T) {
 	os.Unsetenv("MIDDLEWARE_API_KEY")
+	os.Setenv("AUTHORIZATION", "Bearer auth-only-token")
+	os.Setenv("MIDDLEWARE_BASE_URL", "https://test.middleware.io")
+	defer func() {
+		os.Unsetenv("MIDDLEWARE_BASE_URL")
+		os.Unsetenv("AUTHORIZATION")
+	}()
+
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() failed with Authorization only: %v", err)
+	}
+
+	if cfg.MiddlewareAPIKey != "" {
+		t.Errorf("Expected empty API key when using Authorization only, got '%s'", cfg.MiddlewareAPIKey)
+	}
+
+	if cfg.AuthorizationToken != "Bearer auth-only-token" {
+		t.Errorf("Expected Authorization 'Bearer auth-only-token', got '%s'", cfg.AuthorizationToken)
+	}
+}
+
+func TestLoadMissingCredentials(t *testing.T) {
+	os.Unsetenv("MIDDLEWARE_API_KEY")
+	os.Unsetenv("AUTHORIZATION")
 	os.Setenv("MIDDLEWARE_BASE_URL", "https://test.middleware.io")
 	defer os.Unsetenv("MIDDLEWARE_BASE_URL")
 
 	_, err := config.Load()
 	if err == nil {
-		t.Error("Expected error when API key is missing, got nil")
+		t.Error("Expected error when credentials are missing, got nil")
 	}
 
-	expectedMsg := "MIDDLEWARE_API_KEY is required"
+	expectedMsg := "MIDDLEWARE_API_KEY or AUTHORIZATION is required"
 	if err.Error() != expectedMsg {
 		t.Errorf("Expected error message '%s', got '%s'", expectedMsg, err.Error())
 	}
@@ -84,6 +114,7 @@ func TestIsToolExcluded(t *testing.T) {
 	defer func() {
 		os.Unsetenv("MIDDLEWARE_API_KEY")
 		os.Unsetenv("MIDDLEWARE_BASE_URL")
+		os.Unsetenv("AUTHORIZATION")
 		os.Unsetenv("EXCLUDED_TOOLS")
 	}()
 
@@ -133,9 +164,9 @@ func TestInvalidAppMode(t *testing.T) {
 
 func TestCustomAppModes(t *testing.T) {
 	tests := []struct {
-		name     string
-		mode     string
-		wantErr  bool
+		name    string
+		mode    string
+		wantErr bool
 	}{
 		{"stdio mode", "stdio", false},
 		{"http mode", "http", false},
