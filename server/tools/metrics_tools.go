@@ -9,7 +9,6 @@ import (
 	"github.com/mark3labs/mcp-go/mcp"
 )
 
-// WidgetType represents the type of widget for metrics queries
 type WidgetType string
 
 const (
@@ -18,50 +17,61 @@ const (
 	WidgetTypeQueryValue WidgetType = "queryValue"
 )
 
+type MetricsDataType string
+
+const (
+	MetricsDataTypeMetrics MetricsDataType = "metrics"
+	MetricsDataTypeFilters MetricsDataType = "filters"
+	MetricsDataTypeGroupby MetricsDataType = "groupby"
+)
+
 func NewGetMetricsTool() mcp.Tool {
 	return mcp.NewTool(
 		"get_metrics",
 		mcp.WithDescription(`Get a list of available metrics, filters, or groupby tags for building monitoring queries.
 	
-This tool retrieves metadata about available metrics, filters, and grouping options in your Middleware.io environment. Use this to discover what metrics are available for a specific resource (e.g., host CPU metrics, database query metrics), what filters can be applied (e.g., filter by service name, environment), or what grouping dimensions are available (e.g., group by region, pod name).
+This tool is essential for discovering the metadata needed to construct accurate queries. Since every metric supports different filters and grouping dimensions (groupby tags), you must use this tool to validate what is available for each specific metric before querying data.
 
-IMPORTANT - Data Type:
-- The 'data_type' parameter can ONLY be one of these three values: 'metrics', 'filters', or 'groupby'
-- 'metrics': Retrieve metric names available for resources
-- 'filters': Get filter dimensions that can be applied to queries
-- 'groupby': Get grouping tags for aggregating metrics by dimension
+Discovery Workflow:
+1. First, identify available resources using the 'get_resources' tool.
+2. Find available metrics for a resource: Use data_type='metrics' with the 'resources' parameter.
+3. Explore dimensions for a specific metric:
+   - To find how you can group data: Use data_type='groupby' AND provide the specific 'metric' name.
+   - To find how you can filter data: Use data_type='filters' (optionally with 'resources').
 
-IMPORTANT - Resource Selection:
-- The 'resource' or 'resources' parameters can ONLY be used when data_type is 'metrics' or 'filters'
-- For the 'resource' or 'resources' parameters, you MUST first call the get_resources tool to discover available resource types in your environment
-- You can ONLY use resource type names that are returned by the get_resources tool
-- Do not use arbitrary or guessed resource names - only use the exact resource type names returned by get_resources
+IMPORTANT - Metric-Specific Metadata:
+- Filters and GroupBy tags are NOT universal. They vary by metric.
+- ALWAYS check 'groupby' options for a specific metric before trying to aggregate by a dimension.
+- ALWAYS check 'filters' to see what dimensions are available for narrowing down your search.
 
-Common use cases:
-- Find all metrics for a specific resource type (host, container, database) - first call get_resources to get available resource types, then use data_type='metrics'
-- Discover available filters for narrowing down data - use data_type='filters' (optionally with resource/resources)
-- Get groupby tags for aggregating metrics by dimension - use data_type='groupby' (requires 'metric' parameter)`),
+Data Type Options:
+- 'metrics': List metric names (requires 'resources').
+- 'filters': List filter dimensions.
+- 'groupby': List grouping tags (requires 'metric').
+
+Resource Selection:
+- Use exact resource names returned by 'get_resources'.`),
 		mcp.WithInputSchema[GetMetricsInput](),
 	)
 }
 
 type GetMetricsInput struct {
-	DataType                string     `json:"data_type" jsonschema:"Type of data to fetch. DataType is the type of data that is being fetched. Must be one of: 'metrics' (metric names), 'filters' (filter dimensions), 'groupby' (grouping tags),required,enum=metrics|filters|groupby"`
-	WidgetType              WidgetType `json:"widget_type" jsonschema:"Widget type for the query. Must be one of: 'timeseries', 'list', or 'queryValue',required,enum=timeseries|list|queryValue"`
-	KpiType                 int        `json:"kpi_type,omitempty" jsonschema:"Single KPI type filter. 1=Metric (infrastructure/APM metrics), 2=Log (log data), 3=Trace (distributed tracing data)"`
-	KpiTypes                []int      `json:"kpi_types,omitempty" jsonschema:"Array of KPI types to include. Use this for multi-type queries"`
-	Resource                string     `json:"resource,omitempty" jsonschema:"The resource type name obtained from calling get_resources. This identifies which resource type to filter metrics by and correlates the data source. IMPORTANT: You can ONLY use resource type names that are returned by the get_resources tool. You must first call get_resources to discover available resources, then use only those exact resource type names here. Examples: 'host', 'container', 'log', 'trace', 'k8s.pod', 'database', etc. Always use the exact resource type name returned by get_resources."`
-	Resources               []string   `json:"resources,omitempty" jsonschema:"Array of resource type names obtained from calling get_resources. Use this for multi-resource queries. IMPORTANT: You can ONLY use resource type names that are returned by the get_resources tool. You must first call get_resources to discover available resources, then use only those exact resource type names here. Each resource name should be the exact resource type name returned by get_resources (e.g., ['host', 'container', 'trace'])."`
-	Metric                  string     `json:"metric,omitempty" jsonschema:"Specific metric name (required when dataType is 'groupby' to get groupby tags for this metric)"`
-	Page                    int        `json:"page,omitempty" jsonschema:"Page number for paginated results (default: 1)"`
-	Limit                   int        `json:"limit,omitempty" jsonschema:"Number of items per page (default: 100, max: varies by data type)"`
-	Search                  string     `json:"search,omitempty" jsonschema:"Search term to filter metrics or resources by name (case-insensitive substring match)"`
-	ExcludeMetrics          []string   `json:"exclude_metrics,omitempty" jsonschema:"Array of metric names to exclude from results"`
-	MandatoryMetrics        []string   `json:"mandatory_metrics,omitempty" jsonschema:"Array of metric names to always include at the top of results"`
-	ExcludeFilters          []string   `json:"exclude_filters,omitempty" jsonschema:"Array of filter names to exclude from results"`
-	MandatoryFilters        []string   `json:"mandatory_filters,omitempty" jsonschema:"Array of filter names to always include at the top of results"`
-	FilterTypes             []int      `json:"filter_types,omitempty" jsonschema:"Array of filter type IDs to include (filters metadata types)"`
-	ReturnOnlyMandatoryData bool       `json:"return_only_mandatory_data,omitempty" jsonschema:"Set to true to return only mandatory metrics/filters without additional data"`
+	DataType   MetricsDataType `json:"data_type" jsonschema:"Type of data to fetch. DataType is the type of data that is being fetched. Must be one of: 'metrics' (metric names), 'filters' (filter dimensions), 'groupby' (grouping tags),required,enum=metrics|filters|groupby"`
+	WidgetType WidgetType      `json:"widget_type" jsonschema:"Widget type for the query. Must be one of: 'timeseries' (for timeseries, bar, stackbar, area), 'list' (for table, pie, scatter, tree, toplist, hexagon), or 'queryValue' (for queryvalue),required,enum=timeseries|list|queryValue"`
+	// KpiType                 int        `json:"kpi_type,omitempty" jsonschema:"Single KPI type filter. 1=Metric (infrastructure/APM metrics), 2=Log (log data), 3=Trace (distributed tracing data)"`
+	// KpiTypes                []int      `json:"kpi_types,omitempty" jsonschema:"Array of KPI types to include. Use this for multi-type queries"`
+	// Resource                string   `json:"resource,omitempty" jsonschema:"The resource type name obtained from calling get_resources. This identifies which resource type to filter metrics by and correlates the data source. IMPORTANT: You can ONLY use resource type names that are returned by the get_resources tool. You must first call get_resources to discover available resources, then use only those exact resource type names here. Examples: 'host', 'container', 'log', 'trace', 'k8s.pod', 'database', etc. Always use the exact resource type name returned by get_resources."`
+	Resources []string `json:"resources" jsonschema:"Array of resource type names obtained from calling get_resources. Use this for multi-resource queries. IMPORTANT: You can ONLY use resource type names that are returned by the get_resources tool. You must first call get_resources to discover available resources, then use only those exact resource type names here. Each resource name should be the exact resource type name returned by get_resources (e.g., ['host', 'container', 'trace'])."`
+	Metric    string   `json:"metric,omitempty" jsonschema:"Specific metric name. IMPORTANT: This field is REQUIRED when data_type is 'groupby'. When fetching groupby tags, you must specify which metric you want to group by to get the available grouping dimensions for that specific metric."`
+	Page      int      `json:"page,omitempty" jsonschema:"Page number for paginated results (default: 1)"`
+	Limit     int      `json:"limit,omitempty" jsonschema:"Number of items per page (default: 100, max: varies by data type)"`
+	Search    string   `json:"search,omitempty" jsonschema:"Search term to filter metrics or resources by name (case-insensitive substring match)"`
+	// ExcludeMetrics          []string `json:"exclude_metrics,omitempty" jsonschema:"Array of metric names to exclude from results"`
+	// MandatoryMetrics        []string `json:"mandatory_metrics,omitempty" jsonschema:"Array of metric names to always include at the top of results"`
+	// ExcludeFilters          []string `json:"exclude_filters,omitempty" jsonschema:"Array of filter names to exclude from results"`
+	// MandatoryFilters        []string `json:"mandatory_filters,omitempty" jsonschema:"Array of filter names to always include at the top of results"`
+	// FilterTypes             []int    `json:"filter_types,omitempty" jsonschema:"Array of filter type IDs to include (filters metadata types)"`
+	// ReturnOnlyMandatoryData bool     `json:"return_only_mandatory_data,omitempty" jsonschema:"Set to true to return only mandatory metrics/filters without additional data"`
 }
 
 func HandleGetMetrics(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -71,22 +81,22 @@ func HandleGetMetrics(s ServerInterface, ctx context.Context, req mcp.CallToolRe
 	}
 
 	metricsReq := &middleware.MetricsV2Request{
-		DataType:                input.DataType,
-		WidgetType:              string(input.WidgetType),
-		KpiType:                 input.KpiType,
-		KpiTypes:                input.KpiTypes,
-		Resource:                input.Resource,
-		Resources:               input.Resources,
-		Metric:                  input.Metric,
-		Page:                    input.Page,
-		Limit:                   input.Limit,
-		Search:                  input.Search,
-		ExcludeMetrics:          input.ExcludeMetrics,
-		MandatoryMetrics:        input.MandatoryMetrics,
-		ExcludeFilters:          input.ExcludeFilters,
-		MandatoryFilters:        input.MandatoryFilters,
-		FilterTypes:             input.FilterTypes,
-		ReturnOnlyMandatoryData: input.ReturnOnlyMandatoryData,
+		DataType:   string(input.DataType),
+		WidgetType: string(input.WidgetType),
+		// KpiType:                 input.KpiType,
+		// KpiTypes:                input.KpiTypes,
+		// Resource:                input.Resource,
+		Resources: input.Resources,
+		Metric:    input.Metric,
+		Page:      input.Page,
+		Limit:     input.Limit,
+		Search:    input.Search,
+		// ExcludeMetrics:          input.ExcludeMetrics,
+		// MandatoryMetrics:        input.MandatoryMetrics,
+		// ExcludeFilters:          input.ExcludeFilters,
+		// MandatoryFilters:        input.MandatoryFilters,
+		// FilterTypes:             input.FilterTypes,
+		// ReturnOnlyMandatoryData: input.ReturnOnlyMandatoryData,
 	}
 
 	result, err := s.Client().GetMetrics(ctx, metricsReq)

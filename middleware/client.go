@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"time"
 )
@@ -13,18 +14,24 @@ import (
 type Client struct {
 	baseURL    string
 	apiKey     string
+	authHeader string
 	httpClient *http.Client
 }
 
 func NewClient(baseURL, apiKey string) *Client {
+	return NewClientWithAuth(baseURL, apiKey, "")
+}
+
+func NewClientWithAuth(baseURL, apiKey, authorization string) *Client {
 	// Normalize baseURL: remove trailing slash if present
 	normalizedURL := baseURL
 	if len(normalizedURL) > 0 && normalizedURL[len(normalizedURL)-1] == '/' {
 		normalizedURL = normalizedURL[:len(normalizedURL)-1]
 	}
 	return &Client{
-		baseURL: normalizedURL,
-		apiKey:  apiKey,
+		baseURL:    normalizedURL,
+		apiKey:     apiKey,
+		authHeader: authorization,
 		httpClient: &http.Client{
 			Timeout: 30 * time.Second,
 		},
@@ -33,6 +40,7 @@ func NewClient(baseURL, apiKey string) *Client {
 
 func (c *Client) doRequest(ctx context.Context, method, path string, body any, result any) error {
 	url := c.baseURL + "/api/v1" + path
+	log.Printf("Request: Method=%s Path=%s URL=%s", method, path, url)
 
 	var reqBody io.Reader
 	if body != nil {
@@ -40,6 +48,7 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any, r
 		if err != nil {
 			return fmt.Errorf("failed to marshal request body: %w", err)
 		}
+		log.Printf("Request Body: %s\n", string(jsonData))
 		reqBody = bytes.NewBuffer(jsonData)
 	}
 
@@ -48,7 +57,11 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any, r
 		return fmt.Errorf("failed to create request: %w", err)
 	}
 
-	req.Header.Set("ApiKey", c.apiKey)
+	if c.authHeader != "" {
+		req.Header.Set("Authorization", c.authHeader)
+	} else if c.apiKey != "" {
+		req.Header.Set("ApiKey", c.apiKey)
+	}
 	req.Header.Set("Content-Type", "application/json")
 
 	resp, err := c.httpClient.Do(req)
@@ -61,6 +74,7 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any, r
 	if err != nil {
 		return fmt.Errorf("failed to read response: %w", err)
 	}
+	// log.Printf("Response Body: %s\n", string(respBody))
 
 	if resp.StatusCode < 200 || resp.StatusCode >= 300 {
 		var errResp ErrorResponse

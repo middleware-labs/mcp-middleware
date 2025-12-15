@@ -25,6 +25,7 @@ This tool retrieves all widgets (charts, graphs, tables) that belong to a dashbo
 type ListWidgetsInput struct {
 	ReportID     int    `json:"report_id,omitempty" jsonschema:"The numeric ID of the dashboard (report) to filter widgets by"`
 	DisplayScope string `json:"display_scope,omitempty" jsonschema:"The display scope to filter widgets by (e.g., 'infrastructure', 'apm', 'logs')"`
+	Message      string `json:"message" jsonschema:"Message to know which widgets are being listed. Length should be less than 100 characters."`
 }
 
 func HandleListWidgets(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -51,15 +52,26 @@ func NewCreateWidgetTool() mcp.Tool {
 		"create_widget",
 		mcp.WithDescription(`Create a new widget or update an existing widget on a dashboard.
 	
-This tool allows you to add new visualizations (charts, graphs, tables) to dashboards or modify existing ones. The builderConfig is an array of configuration objects, each containing queries, chart type, and visualization settings. Each builderConfig item should have: with (array), columns (array of strings), source (object with name, alias, dataset_id), id (string UUID), meta_data (object with metricTypes), metricMetadata (object with attributes, config, label, name, resource, type), and key (string). If builderId is provided, it updates the existing widget; otherwise, it creates a new one.
+This tool allows you to add new visualizations (charts, graphs, tables) to dashboards or modify existing ones. 
 
-IMPORTANT - Source Name (Resource Type):
-- The 'source.name' field in builderConfig MUST be a resource type that is supported by Middleware and returned by the get_resources tool
-- You MUST first call the get_resources tool to discover available resource types in your environment
-- You can ONLY use resource type names that are returned by the get_resources tool
-- Do not use arbitrary or guessed resource names - only use the exact resource type names returned by get_resources
-- Examples of valid source.name values (if returned by get_resources): 'host', 'container', 'log', 'trace', 'k8s.pod', 'database', 'service', etc.
-- The source.name identifies which resource type the widget will query data from, and it must match a resource type that Middleware supports and has data for`),
+Creation Workflow:
+1. Identify the Resource: Use 'get_resources' to find available resource types (e.g., 'host', 'container').
+2. Identify Metrics/Data: Use 'get_metrics' to find available metrics and dimensions for that resource. IMPORTANT: You MUST explore all edge cases! For each metric, explicitly check its supported 'filters' and 'groupby' tags using the get_metrics tool to ensure your widget query is valid and precise.
+3. Construct BuilderConfig: Create the widget configuration using the discovered resource and metrics.
+
+BuilderConfig Structure (Critical):
+- 'source.name': MUST be an exact resource type returned by 'get_resources' (e.g., 'host', 'container').
+- 'metricMetadata': Defines the specific metric to visualize.
+- 'columns': Array of metric names or expressions to display.
+- 'group_by': (Optional) Dimensions to group data by (discovered via 'get_metrics' with data_type='groupby').
+- 'filter_with': (Optional) Conditions to filter data (discovered via 'get_metrics' with data_type='filters').
+
+IMPORTANT - Validation Rules:
+- Resource Validation: You CANNOT use arbitrary resource names. You MUST use the exact strings returned by 'get_resources'.
+- Dashboard ID: The 'report_id' is REQUIRED to place the widget on a specific dashboard.
+- Widget Type: Choose the appropriate visualization type (e.g., 'time_series_chart', 'bar_chart') based on the data.
+
+Use this tool to build rich, data-driven dashboards by combining resources, metrics, and visualizations.`),
 		mcp.WithInputSchema[CreateWidgetInput](),
 	)
 }
@@ -99,12 +111,13 @@ type CreateWidgetInput struct {
 	Key               string                   `json:"key,omitempty" jsonschema:"Optional unique key identifier for the widget"`
 	Description       string                   `json:"description,omitempty" jsonschema:"Optional description explaining what the widget displays"`
 	BuilderConfig     []BuilderConfigItemInput `json:"builderConfig" jsonschema:"Widget configuration array containing queries, chart type, display settings, and data sources. Each item should have: columns, source, id, meta_data, metricMetadata, key, group_by, and filter_with"`
-	ReportID          int                      `json:"report_id,omitempty" jsonschema:"The numeric ID of the dashboard (report) where this widget will be created"`
+	ReportID          int                      `json:"report_id" jsonschema:"The numeric ID of the dashboard ID (Report ID) where this widget will be created"`
 	ReportKey         string                   `json:"report_key,omitempty" jsonschema:"The unique key identifier of the dashboard (report) where this widget will be created"`
 	ReportName        string                   `json:"report_name,omitempty" jsonschema:"The name of the dashboard (report) where this widget will be created"`
 	ReportDescription string                   `json:"report_description,omitempty" jsonschema:"Optional description of the dashboard (report)"`
 	ReportMetadata    any                      `json:"report_metadata,omitempty" jsonschema:"Optional metadata for the dashboard (report)"`
 	DisableUserEdit   bool                     `json:"disable_user_edit,omitempty" jsonschema:"Whether to disable user editing of the widget (default: false)"`
+	Layout            *LayoutItemInput         `json:"layout,omitempty" jsonschema:"Optional layout for the widget including coordinates and size minimum size is 5x6"`
 }
 
 type BuilderConfigItemInput struct {
@@ -186,6 +199,32 @@ func HandleCreateWidget(s ServerInterface, ctx context.Context, req mcp.CallTool
 
 	widgetAppID := getWidgetAppID(input.WidgetType)
 
+	defaultLayout := middleware.LayoutItem{
+		X: 0,
+		Y: 0,
+		W: 5,
+		H: 6,
+	}
+
+	var layout *middleware.LayoutItem
+	if input.Layout != nil {
+		layout = &middleware.LayoutItem{
+			X: defaultLayout.X,
+			Y: defaultLayout.Y,
+			W: input.Layout.W,
+			H: input.Layout.H,
+		}
+
+		if layout.W == 0 {
+			layout.W = defaultLayout.W
+		}
+		if layout.H == 0 {
+			layout.H = defaultLayout.H
+		}
+	} else {
+		layout = &defaultLayout
+	}
+
 	widget := &middleware.CustomWidget{
 		Label:              input.Label,
 		Key:                widgetKey,
@@ -201,17 +240,174 @@ func HandleCreateWidget(s ServerInterface, ctx context.Context, req mcp.CallTool
 		Category:        "Metrics",
 		Formulas:        []any{},
 		DontRefreshData: false,
-		Layout: &middleware.LayoutItem{
-			X: 0,
-			Y: 0,
-			W: 4,
-			H: 5,
-		},
+		Layout:          layout,
 	}
 
 	result, err := s.Client().CreateWidget(ctx, widget)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create widget: %w", err)
+	}
+
+	return ToTextResult(result)
+}
+
+func NewUpdateWidgetTool() mcp.Tool {
+	return mcp.NewTool(
+		"update_widget",
+		mcp.WithDescription(`Update an existing widget on a dashboard.
+	
+This tool allows you to modify existing visualizations (charts, graphs, tables) on dashboards. The builderConfig is an array of configuration objects, each containing queries, chart type, and visualization settings. Each builderConfig item should have: with (array), columns (array of strings), source (object with name, alias, dataset_id), id (string UUID), meta_data (object with metricTypes), metricMetadata (object with attributes, config, label, name, resource, type), and key (string). You MUST provide the builder_id (widget ID) of the widget you want to update.
+
+IMPORTANT - Source Name (Resource Type):
+- The 'source.name' field in builderConfig MUST be a resource type that is supported by Middleware and returned by the get_resources tool
+- You MUST first call the get_resources tool to discover available resource types in your environment
+- You can ONLY use resource type names that are returned by the get_resources tool
+- Do not use arbitrary or guessed resource names - only use the exact resource type names returned by get_resources
+- Examples of valid source.name values (if returned by get_resources): 'host', 'container', 'log', 'trace', 'k8s.pod', 'database', 'service', etc.
+- The source.name identifies which resource type the widget will query data from, and it must match a resource type that Middleware supports and has data for
+IMPORTANT - Builder ID (Widget ID):
+- The builder_id field is REQUIRED for updating a widget.
+- The builder_id is the widget ID of the widget that needs to be updated.
+- This is the unique identifier of the widget you want to update.
+- You can get the builder_id (widget ID) from the list_widgets tool or from the widget creation response.
+`),
+		mcp.WithInputSchema[UpdateWidgetInput](),
+	)
+}
+
+type UpdateWidgetInput struct {
+	BuilderID         int                      `json:"builder_id" jsonschema:"The widget ID (builder ID) of the widget that needs to be updated,required"`
+	Label             string                   `json:"label,omitempty" jsonschema:"The display name for the widget (e.g., 'CPU Usage', 'Error Rate')"`
+	WidgetType        string                   `json:"widget_type,omitempty" jsonschema:"The type of chart/widget,enum=time_series_chart|bar_chart|data_table|query_value|pie_chart|scatter_plot|count_chart|tree_chart|top_list_chart|heatmap_chart|hexagon_chart"`
+	Key               string                   `json:"key,omitempty" jsonschema:"Optional unique key identifier for the widget"`
+	Description       string                   `json:"description,omitempty" jsonschema:"Optional description explaining what the widget displays"`
+	BuilderConfig     []BuilderConfigItemInput `json:"builderConfig,omitempty" jsonschema:"Widget configuration array containing queries, chart type, display settings, and data sources. Each item should have: columns, source, id, meta_data, metricMetadata, key, group_by, and filter_with"`
+	ReportID          int                      `json:"report_id,omitempty" jsonschema:"The numeric ID of the dashboard ID (Report ID) where this widget belongs"`
+	ReportKey         string                   `json:"report_key,omitempty" jsonschema:"The unique key identifier of the dashboard (report) where this widget belongs"`
+	ReportName        string                   `json:"report_name,omitempty" jsonschema:"The name of the dashboard (report) where this widget belongs"`
+	ReportDescription string                   `json:"report_description,omitempty" jsonschema:"Optional description of the dashboard (report)"`
+	ReportMetadata    any                      `json:"report_metadata,omitempty" jsonschema:"Optional metadata for the dashboard (report)"`
+	DisableUserEdit   bool                     `json:"disable_user_edit,omitempty" jsonschema:"Whether to disable user editing of the widget (default: false)"`
+	Layout            *LayoutItemInput         `json:"layout,omitempty" jsonschema:"Optional layout for the widget including coordinates and size minimum size is 5x6"`
+}
+
+func HandleUpdateWidget(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+	input, err := ParseInput[UpdateWidgetInput](req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse input: %w", err)
+	}
+
+	if input.BuilderID <= 0 {
+		return nil, fmt.Errorf("builder_id is required for updating a widget")
+	}
+
+	var builderViewOptions *middleware.BuilderViewOptions
+	if input.ReportID > 0 || input.ReportKey != "" || input.ReportName != "" {
+		builderViewOptions = &middleware.BuilderViewOptions{
+			DisableUserEdit: input.DisableUserEdit,
+		}
+
+		if input.ReportID > 0 || input.ReportKey != "" || input.ReportName != "" {
+			builderViewOptions.Report = &middleware.ReportView{
+				ReportID:          input.ReportID,
+				ReportKey:         input.ReportKey,
+				ReportName:        input.ReportName,
+				ReportDescription: input.ReportDescription,
+				Metadata:          input.ReportMetadata,
+			}
+		}
+	}
+
+	widgetKey := input.Key
+	if widgetKey == "" && input.Label != "" {
+		widgetKey = generateWidgetKey(input.Label)
+	}
+
+	var builderConfig []middleware.BuilderConfigItem
+	if len(input.BuilderConfig) > 0 {
+		builderConfig = make([]middleware.BuilderConfigItem, len(input.BuilderConfig))
+		for i, configInput := range input.BuilderConfig {
+			var withItems []middleware.BuilderConfigWith
+
+			if len(configInput.GroupBy) > 0 {
+				withItems = append(withItems, middleware.BuilderConfigWith{
+					Key:   middleware.BuilderConfigWithKeySelectDataBy,
+					Value: configInput.GroupBy,
+					IsArg: true,
+				})
+			}
+
+			if configInput.FilterWith != nil {
+				withItems = append(withItems, middleware.BuilderConfigWith{
+					Key:   middleware.BuilderConfigWithKeyAttributeFilter,
+					Value: configInput.FilterWith,
+					IsArg: true,
+				})
+			}
+
+			var metricMetadata *middleware.MetricMetadata
+			if len(configInput.MetricMetadata) > 0 {
+				for _, v := range configInput.MetricMetadata {
+					metricMetadata = &v
+					break
+				}
+			}
+
+			builderConfig[i] = middleware.BuilderConfigItem{
+				With:           withItems,
+				Columns:        configInput.Columns,
+				Source:         configInput.Source,
+				ID:             configInput.ID,
+				MetaData:       configInput.MetaData,
+				MetricMetadata: metricMetadata,
+				Key:            configInput.Key,
+			}
+		}
+	}
+
+	widget := &middleware.CustomWidget{
+		BuilderID:          input.BuilderID,
+		Label:              input.Label,
+		Key:                widgetKey,
+		Description:        input.Description,
+		BuilderConfig:      builderConfig,
+		BuilderViewOptions: builderViewOptions,
+	}
+
+	// Set widget type if provided
+	if input.WidgetType != "" {
+		widget.WidgetAppID = getWidgetAppID(input.WidgetType)
+	}
+
+	// Set layout if provided
+	if input.Layout != nil {
+		defaultLayout := middleware.LayoutItem{
+			X: 0,
+			Y: 0,
+			W: 5,
+			H: 6,
+		}
+
+		layout := &middleware.LayoutItem{
+			X: defaultLayout.X,
+			Y: defaultLayout.Y,
+			W: input.Layout.W,
+			H: input.Layout.H,
+		}
+
+		if layout.W == 0 {
+			layout.W = defaultLayout.W
+		}
+		if layout.H == 0 {
+			layout.H = defaultLayout.H
+		}
+
+		widget.Layout = layout
+	}
+
+	result, err := s.Client().UpdateWidget(ctx, widget)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update widget: %w", err)
 	}
 
 	return ToTextResult(result)
@@ -228,7 +424,9 @@ This tool removes a widget (chart, graph, table) from its dashboard. Warning: Th
 }
 
 type DeleteWidgetInput struct {
-	BuilderID int `json:"builder_id" jsonschema:"The numeric builder ID of the widget to delete permanently,required"`
+	BuilderID   int    `json:"builder_id" jsonschema:"The numeric builder ID of the widget to delete permanently,required"`
+	Message     string `json:"message" jsonschema:"Message to know which widget is being deleted."`
+	WidgetLabel string `json:"widget_label" jsonschema:"Label of the widget to delete."`
 }
 
 func HandleDeleteWidget(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -344,14 +542,16 @@ This tool modifies the layout (position, size) of multiple widgets on a dashboar
 }
 
 type UpdateWidgetLayoutsInput struct {
-	Layouts []LayoutItemInput `json:"layouts" jsonschema:"Array of layout specifications for each widget. Each item defines position and size in the dashboard grid,required"`
+	Layouts          []LayoutItemInput `json:"layouts" jsonschema:"Array of layout specifications for each widget. Each item defines position and size in the dashboard grid,required"`
+	Message          string            `json:"message" jsonschema:"Message to know which widgets are being updated. Length should be less than 100 characters."`
+	OperationMessage string            `json:"operation_message" jsonschema:"Message to know the operation being completed. Example: 'Updating widget CPU Usage layouts successfully' Length should be less than 100 characters."`
 }
 
 type LayoutItemInput struct {
 	X       int `json:"x" jsonschema:"Horizontal position in the grid (0-based index from left)"`
 	Y       int `json:"y" jsonschema:"Vertical position in the grid (0-based index from top)"`
-	W       int `json:"w" jsonschema:"Width in grid units"`
-	H       int `json:"h" jsonschema:"Height in grid units"`
+	W       int `json:"w" jsonschema:"Width in grid units between 1 and 12 minimum size is 5"`
+	H       int `json:"h" jsonschema:"Height in grid units between 1 and 12 minimum size is 6"`
 	ScopeID int `json:"scope_id,omitempty" jsonschema:"The scope ID of the widget to update layout for"`
 }
 
@@ -381,5 +581,5 @@ func HandleUpdateWidgetLayouts(s ServerInterface, ctx context.Context, req mcp.C
 		return nil, fmt.Errorf("failed to update widget layouts: %w", err)
 	}
 
-	return ToTextResult(map[string]any{"success": true, "message": "Widget layouts updated successfully"})
+	return ToTextResult(map[string]any{"success": true, "message": input.OperationMessage})
 }

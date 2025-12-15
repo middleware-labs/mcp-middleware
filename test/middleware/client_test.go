@@ -21,6 +21,16 @@ func TestNewClient(t *testing.T) {
 	}
 }
 
+func TestNewClientWithAuthorization(t *testing.T) {
+	baseURL := "https://test.middleware.io"
+	authHeader := "Bearer test-token"
+
+	client := middleware.NewClientWithAuth(baseURL, "", authHeader)
+	if client == nil {
+		t.Fatal("NewClientWithAuth() returned nil")
+	}
+}
+
 func TestGetDashboards(t *testing.T) {
 	// Create test server
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -71,6 +81,64 @@ func TestGetDashboards(t *testing.T) {
 
 	if result.Reports[0].Label != "Test Dashboard" {
 		t.Errorf("Expected label 'Test Dashboard', got '%s'", result.Reports[0].Label)
+	}
+}
+
+func TestGetDashboardsWithAuthorizationHeader(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if auth := r.Header.Get("Authorization"); auth != "Bearer test-auth" {
+			t.Errorf("Expected Authorization header 'Bearer test-auth', got '%s'", auth)
+		}
+		if apiKey := r.Header.Get("ApiKey"); apiKey != "" {
+			t.Errorf("Expected ApiKey header to be empty when using Authorization, got '%s'", apiKey)
+		}
+
+		response := middleware.ReportListResponse{
+			Reports: []middleware.Report{},
+			Total:   0,
+			Limit:   10,
+			Offset:  0,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	client := middleware.NewClientWithAuth(server.URL, "", "Bearer test-auth")
+	ctx := context.Background()
+
+	if _, err := client.GetDashboards(ctx, nil); err != nil {
+		t.Fatalf("GetDashboards() error = %v", err)
+	}
+}
+
+func TestGetDashboardsPrefersAuthorizationOverApiKey(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if auth := r.Header.Get("Authorization"); auth != "Bearer preferred-auth" {
+			t.Errorf("Expected Authorization header 'Bearer preferred-auth', got '%s'", auth)
+		}
+		if apiKey := r.Header.Get("ApiKey"); apiKey != "" {
+			t.Errorf("Expected ApiKey header to be empty when Authorization is provided, got '%s'", apiKey)
+		}
+
+		response := middleware.ReportListResponse{
+			Reports: []middleware.Report{},
+			Total:   0,
+			Limit:   10,
+			Offset:  0,
+		}
+
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(response)
+	}))
+	defer server.Close()
+
+	client := middleware.NewClientWithAuth(server.URL, "should-not-send", "Bearer preferred-auth")
+	ctx := context.Background()
+
+	if _, err := client.GetDashboards(ctx, nil); err != nil {
+		t.Fatalf("GetDashboards() error = %v", err)
 	}
 }
 

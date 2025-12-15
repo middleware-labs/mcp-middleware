@@ -58,6 +58,11 @@ func (s *Server) registerTools() {
 			return tools.HandleCreateWidget(s, ctx, req)
 		})
 	}
+	if !s.config.IsToolExcluded("update_widget") {
+		s.mcpServer.AddTool(tools.NewUpdateWidgetTool(), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
+			return tools.HandleUpdateWidget(s, ctx, req)
+		})
+	}
 	if !s.config.IsToolExcluded("delete_widget") {
 		s.mcpServer.AddTool(tools.NewDeleteWidgetTool(), func(ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
 			return tools.HandleDeleteWidget(s, ctx, req)
