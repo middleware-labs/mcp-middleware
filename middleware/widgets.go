@@ -38,6 +38,14 @@ func (c *Client) CreateWidget(ctx context.Context, widget *CustomWidget) (*Widge
 	return &result, nil
 }
 
+func (c *Client) UpdateWidget(ctx context.Context, widget *CustomWidget) (*Widget, error) {
+	var result Widget
+	if err := c.doRequest(ctx, "POST", "/builder/widget", widget, &result); err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
 func (c *Client) DeleteWidget(ctx context.Context, builderID int) error {
 	path := fmt.Sprintf("/builder/widget/%d", builderID)
 	return c.doRequest(ctx, "DELETE", path, nil, nil)
