@@ -202,8 +202,8 @@ func HandleCreateWidget(s ServerInterface, ctx context.Context, req mcp.CallTool
 	defaultLayout := middleware.LayoutItem{
 		X: 0,
 		Y: 0,
-		W: 5,
-		H: 6,
+		W: 4,
+		H: 5,
 	}
 
 	var layout *middleware.LayoutItem
@@ -215,10 +215,10 @@ func HandleCreateWidget(s ServerInterface, ctx context.Context, req mcp.CallTool
 			H: input.Layout.H,
 		}
 
-		if layout.W == 0 {
+		if layout.W < defaultLayout.W {
 			layout.W = defaultLayout.W
 		}
-		if layout.H == 0 {
+		if layout.H < defaultLayout.H {
 			layout.H = defaultLayout.H
 		}
 	} else {
@@ -384,8 +384,8 @@ func HandleUpdateWidget(s ServerInterface, ctx context.Context, req mcp.CallTool
 		defaultLayout := middleware.LayoutItem{
 			X: 0,
 			Y: 0,
-			W: 5,
-			H: 6,
+			W: 4,
+			H: 5,
 		}
 
 		layout := &middleware.LayoutItem{
@@ -395,10 +395,10 @@ func HandleUpdateWidget(s ServerInterface, ctx context.Context, req mcp.CallTool
 			H: input.Layout.H,
 		}
 
-		if layout.W == 0 {
+		if layout.W < defaultLayout.W {
 			layout.W = defaultLayout.W
 		}
-		if layout.H == 0 {
+		if layout.H < defaultLayout.H {
 			layout.H = defaultLayout.H
 		}
 
@@ -550,8 +550,8 @@ type UpdateWidgetLayoutsInput struct {
 type LayoutItemInput struct {
 	X       int `json:"x" jsonschema:"Horizontal position in the grid (0-based index from left)"`
 	Y       int `json:"y" jsonschema:"Vertical position in the grid (0-based index from top)"`
-	W       int `json:"w" jsonschema:"Width in grid units between 1 and 12 minimum size is 5"`
-	H       int `json:"h" jsonschema:"Height in grid units between 1 and 12 minimum size is 6"`
+	W       int `json:"w" jsonschema:"Width in grid units between 4 and 12 minimum size is 5"`
+	H       int `json:"h" jsonschema:"Height in grid units between 5 and 12 minimum size is 6"`
 	ScopeID int `json:"scope_id,omitempty" jsonschema:"The scope ID of the widget to update layout for"`
 }
 
