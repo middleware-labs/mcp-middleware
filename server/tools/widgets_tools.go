@@ -70,7 +70,7 @@ IMPORTANT - Validation Rules:
 - Resource Validation: You CANNOT use arbitrary resource names. You MUST use the exact strings returned by 'get_resources'.
 - Dashboard ID: The 'report_id' is REQUIRED to place the widget on a specific dashboard.
 - Widget Type: Choose the appropriate visualization type (e.g., 'time_series_chart', 'bar_chart') based on the data.
-- Layout Requirements: If providing layout, width (w) must be minimum 4 and height (h) must be minimum 6.
+- Layout Requirements: Based on the widget type, you MUST set proper layout. Width (w) must be minimum 4 (this is a strict minimum requirement) and height (h) must be minimum 6 (this is a strict minimum requirement). The layout dimensions should be appropriate for the widget type to ensure proper visualization.
 
 Use this tool to build rich, data-driven dashboards by combining resources, metrics, and visualizations.`),
 		mcp.WithInputSchema[CreateWidgetInput](),
@@ -118,7 +118,7 @@ type CreateWidgetInput struct {
 	ReportDescription string                   `json:"report_description,omitempty" jsonschema:"Optional description of the dashboard (report)"`
 	ReportMetadata    any                      `json:"report_metadata,omitempty" jsonschema:"Optional metadata for the dashboard (report)"`
 	DisableUserEdit   bool                     `json:"disable_user_edit,omitempty" jsonschema:"Whether to disable user editing of the widget (default: false)"`
-	Layout            *LayoutItemInput         `json:"layout,omitempty" jsonschema:"Optional layout for the widget including coordinates and size. Width (w) must be minimum 4 and height (h) must be minimum 6"`
+	Layout            *LayoutItemInput         `json:"layout" jsonschema:"Layout for the widget including coordinates and size. Based on the widget type, you MUST set proper layout. Width (w) must be minimum 4 (strict minimum requirement) and height (h) must be minimum 6 (strict minimum requirement),required"`
 }
 
 type BuilderConfigItemInput struct {
@@ -272,7 +272,7 @@ IMPORTANT - Builder ID (Widget ID):
 - This is the unique identifier of the widget you want to update.
 - You can get the builder_id (widget ID) from the list_widgets tool or from the widget creation response.
 IMPORTANT - Layout Requirements:
-- If providing layout, width (w) must be minimum 4 and height (h) must be minimum 6.
+- Based on the widget type, you MUST set proper layout. Width (w) must be minimum 4 (this is a strict minimum requirement) and height (h) must be minimum 6 (this is a strict minimum requirement). The layout dimensions should be appropriate for the widget type to ensure proper visualization.
 `),
 		mcp.WithInputSchema[UpdateWidgetInput](),
 	)
@@ -291,7 +291,7 @@ type UpdateWidgetInput struct {
 	ReportDescription string                   `json:"report_description,omitempty" jsonschema:"Optional description of the dashboard (report)"`
 	ReportMetadata    any                      `json:"report_metadata,omitempty" jsonschema:"Optional metadata for the dashboard (report)"`
 	DisableUserEdit   bool                     `json:"disable_user_edit,omitempty" jsonschema:"Whether to disable user editing of the widget (default: false)"`
-	Layout            *LayoutItemInput         `json:"layout,omitempty" jsonschema:"Optional layout for the widget including coordinates and size. Width (w) must be minimum 4 and height (h) must be minimum 6"`
+	Layout            *LayoutItemInput         `json:"layout" jsonschema:"Layout for the widget including coordinates and size. Based on the widget type, you MUST set proper layout. Width (w) must be minimum 4 (strict minimum requirement) and height (h) must be minimum 6 (strict minimum requirement),required"`
 }
 
 func HandleUpdateWidget(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -539,13 +539,13 @@ func NewUpdateWidgetLayoutsTool() mcp.Tool {
 		"update_widget_layouts",
 		mcp.WithDescription(`Update the position and size of widgets on a dashboard.
 	
-This tool modifies the layout (position, size) of multiple widgets on a dashboard. Use this to rearrange widgets, resize them, or optimize dashboard layout. The dashboard uses a grid system where x,y represent position and w,h represent size in grid units. IMPORTANT: Width (w) must be minimum 4 and height (h) must be minimum 6.`),
+This tool modifies the layout (position, size) of multiple widgets on a dashboard. Use this to rearrange widgets, resize them, or optimize dashboard layout. The dashboard uses a grid system where x,y represent position and w,h represent size in grid units. IMPORTANT: Based on the widget type, you MUST set proper layout. Width (w) must be minimum 4 (this is a strict minimum requirement) and height (h) must be minimum 6 (this is a strict minimum requirement). The layout dimensions should be appropriate for the widget type to ensure proper visualization.`),
 		mcp.WithInputSchema[UpdateWidgetLayoutsInput](),
 	)
 }
 
 type UpdateWidgetLayoutsInput struct {
-	Layouts          []LayoutItemInput `json:"layouts" jsonschema:"Array of layout specifications for each widget. Each item defines position and size in the dashboard grid. Width (w) must be minimum 4 and height (h) must be minimum 6,required"`
+	Layouts          []LayoutItemInput `json:"layouts" jsonschema:"Array of layout specifications for each widget. Each item defines position and size in the dashboard grid. Based on the widget type, you MUST set proper layout. Width (w) must be minimum 4 (strict minimum requirement) and height (h) must be minimum 6 (strict minimum requirement),required"`
 	Message          string            `json:"message" jsonschema:"Message to know which widgets are being updated. Length should be less than 100 characters."`
 	OperationMessage string            `json:"operation_message" jsonschema:"Message to know the operation being completed. Example: 'Updating widget CPU Usage layouts successfully' Length should be less than 100 characters."`
 }
