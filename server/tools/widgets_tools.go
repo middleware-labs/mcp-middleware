@@ -62,7 +62,7 @@ Creation Workflow:
 BuilderConfig Structure (Critical):
 - 'source.name': MUST be an exact resource type returned by 'get_resources' (e.g., 'host', 'container').
 - 'metricMetadata': Defines the specific metric to visualize.
-- 'columns': Array of metric names or expressions to display.
+- 'columns': Array of column configuration objects. Each object MUST have 'name' (metric name) and can optionally have 'aggregation_method' (e.g., avg, sum, min, max, uniq, count, group) and 'rollup_method' (e.g., avg, sum, min, max, none). This replaces the old string array format.
 - 'group_by': (Optional) Dimensions to group data by (discovered via 'get_metrics' with data_type='groupby').
 - 'filter_with': (Optional) Conditions to filter data (discovered via 'get_metrics' with data_type='filters').
 
@@ -121,8 +121,58 @@ type CreateWidgetInput struct {
 	Layout            *LayoutItemInput         `json:"layout" jsonschema:"Layout for the widget including coordinates and size. Based on the widget type, you MUST set proper layout. Width (w) must be minimum 4 (strict minimum requirement) and height (h) must be minimum 6 (strict minimum requirement),required"`
 }
 
+type AggregationMethod string
+
+const (
+	AggregationAvg   AggregationMethod = "avg"
+	AggregationSum   AggregationMethod = "sum"
+	AggregationMin   AggregationMethod = "min"
+	AggregationMax   AggregationMethod = "max"
+	AggregationAny   AggregationMethod = "any"
+	AggregationUniq  AggregationMethod = "uniq"
+	AggregationCount AggregationMethod = "count"
+	AggregationGroup AggregationMethod = "group"
+)
+
+type RollupMethod string
+
+const (
+	RollupAvg   RollupMethod = "avg"
+	RollupSum   RollupMethod = "sum"
+	RollupMin   RollupMethod = "min"
+	RollupMax   RollupMethod = "max"
+	RollupAny   RollupMethod = "any"
+	RollupUniq  RollupMethod = "uniq"
+	RollupCount RollupMethod = "count"
+	RollupGroup RollupMethod = "group"
+	RollupNone  RollupMethod = "none"
+)
+
+type ColumnConfig struct {
+	Name              string            `json:"name" jsonschema:"The metric or metric attribute name (e.g., 'k8s.node.cpu.utilization', 'host.memory.usage'),required"`
+	AggregationMethod AggregationMethod `json:"aggregation_method" jsonschema:"Aggregation method to apply to this column. Supported values: avg, sum, min, max, any (default), uniq, count, group. If empty or 'any', no aggregation is applied.,enum=avg,enum=sum,enum=min,enum=max,enum=any,enum=uniq,enum=count,enum=group"`
+	RollupMethod      RollupMethod      `json:"rollup_method,omitempty" jsonschema:"Rollup method to apply to this column. Supported values: avg, sum, min, max, any (default), uniq, count, group, none. If empty, 'none', or 'any', no rollup is applied.,enum=avg,enum=sum,enum=min,enum=max,enum=any,enum=uniq,enum=count,enum=group,enum=none"`
+}
+
+func transformColumns(columns []ColumnConfig) []string {
+	transformed := make([]string, len(columns))
+	for i, col := range columns {
+		if col.AggregationMethod == "" || col.AggregationMethod == AggregationAny {
+			transformed[i] = col.Name
+			continue
+		}
+
+		if col.RollupMethod == "" || col.RollupMethod == RollupNone || col.RollupMethod == RollupAny {
+			transformed[i] = fmt.Sprintf("%s(%s)", col.AggregationMethod, col.Name)
+		} else {
+			transformed[i] = fmt.Sprintf("%s(%s, value(%s))", col.AggregationMethod, col.Name, col.RollupMethod)
+		}
+	}
+	return transformed
+}
+
 type BuilderConfigItemInput struct {
-	Columns        []string                             `json:"columns,omitempty" jsonschema:"Array of column/metric names to query (e.g., [\"avg(k8s.node.memory.utilization,value(avg))\"])"`
+	Columns        []ColumnConfig                       `json:"columns" jsonschema:"Array of column configurations, each specifying metric/attribute name and its aggregation/rollup methods. Each column can have different aggregation and rollup settings.,required"`
 	Source         *middleware.BuilderConfigSource      `json:"source,omitempty" jsonschema:"Data source configuration with name, alias, and dataset_id. IMPORTANT: The source.name field MUST be a resource type that is supported by Middleware and returned by the get_resources tool. You MUST first call the get_resources tool to discover available resource types, then use only those exact resource type names here. Do not use arbitrary or guessed resource names. Examples (if returned by get_resources): 'host', 'container', 'log', 'trace', 'k8s.pod', 'database', 'service', etc. The source.name identifies which resource type the widget will query data from."`
 	ID             string                               `json:"id,omitempty" jsonschema:"Unique identifier for this config item (UUID format)"`
 	MetaData       *middleware.BuilderConfigMetaData    `json:"meta_data,omitempty" jsonschema:"Metadata containing metricTypes mapping"`
@@ -130,6 +180,50 @@ type BuilderConfigItemInput struct {
 	Key            string                               `json:"key,omitempty" jsonschema:"Key identifier for this config item"`
 	GroupBy        []string                             `json:"group_by,omitempty" jsonschema:"Array of attribute names to group by (e.g., [\"host.cpu.model.id\"]). This will be converted to SELECT_DATA_BY in the 'with' array"`
 	FilterWith     any                                  `json:"filter_with,omitempty" jsonschema:"Filter conditions object with 'and' or 'or' arrays (e.g., {\"and\": [{\"host.id\": {\"=\": \"ai-team2\"}}, {\"host.name\": {\"LIKE\": \"%ai%\"}}]}). This will be converted to ATTRIBUTE_FILTER in the 'with' array"`
+}
+
+func convertToMiddlewareBuilderConfig(input []BuilderConfigItemInput) []middleware.BuilderConfigItem {
+	builderConfig := make([]middleware.BuilderConfigItem, len(input))
+	for i, configInput := range input {
+		var withItems []middleware.BuilderConfigWith
+
+		if len(configInput.GroupBy) > 0 {
+			withItems = append(withItems, middleware.BuilderConfigWith{
+				Key:   middleware.BuilderConfigWithKeySelectDataBy,
+				Value: configInput.GroupBy,
+				IsArg: true,
+			})
+		}
+
+		if configInput.FilterWith != nil {
+			withItems = append(withItems, middleware.BuilderConfigWith{
+				Key:   middleware.BuilderConfigWithKeyAttributeFilter,
+				Value: configInput.FilterWith,
+				IsArg: true,
+			})
+		}
+
+		var metricMetadata *middleware.MetricMetadata
+		if len(configInput.MetricMetadata) > 0 {
+			for _, v := range configInput.MetricMetadata {
+				metricMetadata = &v
+				break
+			}
+		}
+
+		transformedColumns := transformColumns(configInput.Columns)
+
+		builderConfig[i] = middleware.BuilderConfigItem{
+			With:           withItems,
+			Columns:        transformedColumns,
+			Source:         configInput.Source,
+			ID:             configInput.ID,
+			MetaData:       configInput.MetaData,
+			MetricMetadata: metricMetadata,
+			Key:            configInput.Key,
+		}
+	}
+	return builderConfig
 }
 
 func HandleCreateWidget(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -159,44 +253,7 @@ func HandleCreateWidget(s ServerInterface, ctx context.Context, req mcp.CallTool
 		widgetKey = generateWidgetKey(input.Label)
 	}
 
-	builderConfig := make([]middleware.BuilderConfigItem, len(input.BuilderConfig))
-	for i, configInput := range input.BuilderConfig {
-		var withItems []middleware.BuilderConfigWith
-
-		if len(configInput.GroupBy) > 0 {
-			withItems = append(withItems, middleware.BuilderConfigWith{
-				Key:   middleware.BuilderConfigWithKeySelectDataBy,
-				Value: configInput.GroupBy,
-				IsArg: true,
-			})
-		}
-
-		if configInput.FilterWith != nil {
-			withItems = append(withItems, middleware.BuilderConfigWith{
-				Key:   middleware.BuilderConfigWithKeyAttributeFilter,
-				Value: configInput.FilterWith,
-				IsArg: true,
-			})
-		}
-
-		var metricMetadata *middleware.MetricMetadata
-		if len(configInput.MetricMetadata) > 0 {
-			for _, v := range configInput.MetricMetadata {
-				metricMetadata = &v
-				break
-			}
-		}
-
-		builderConfig[i] = middleware.BuilderConfigItem{
-			With:           withItems,
-			Columns:        configInput.Columns,
-			Source:         configInput.Source,
-			ID:             configInput.ID,
-			MetaData:       configInput.MetaData,
-			MetricMetadata: metricMetadata,
-			Key:            configInput.Key,
-		}
-	}
+	builderConfig := convertToMiddlewareBuilderConfig(input.BuilderConfig)
 
 	widgetAppID := getWidgetAppID(input.WidgetType)
 
@@ -257,7 +314,7 @@ func NewUpdateWidgetTool() mcp.Tool {
 		"update_widget",
 		mcp.WithDescription(`Update an existing widget on a dashboard.
 	
-This tool allows you to modify existing visualizations (charts, graphs, tables) on dashboards. The builderConfig is an array of configuration objects, each containing queries, chart type, and visualization settings. Each builderConfig item should have: with (array), columns (array of strings), source (object with name, alias, dataset_id), id (string UUID), meta_data (object with metricTypes), metricMetadata (object with attributes, config, label, name, resource, type), and key (string). You MUST provide the builder_id (widget ID) of the widget you want to update.
+This tool allows you to modify existing visualizations (charts, graphs, tables) on dashboards. The builderConfig is an array of configuration objects, each containing queries, chart type, and visualization settings. Each builderConfig item should have: with (array), columns (array of column configuration objects, each with 'name', 'aggregation_method', and 'rollup_method'), source (object with name, alias, dataset_id), id (string UUID), meta_data (object with metricTypes), metricMetadata (object with attributes, config, label, name, resource, type), and key (string). You MUST provide the builder_id (widget ID) of the widget you want to update.
 
 IMPORTANT - Source Name (Resource Type):
 - The 'source.name' field in builderConfig MUST be a resource type that is supported by Middleware and returned by the get_resources tool
@@ -328,44 +385,7 @@ func HandleUpdateWidget(s ServerInterface, ctx context.Context, req mcp.CallTool
 
 	var builderConfig []middleware.BuilderConfigItem
 	if len(input.BuilderConfig) > 0 {
-		builderConfig = make([]middleware.BuilderConfigItem, len(input.BuilderConfig))
-		for i, configInput := range input.BuilderConfig {
-			var withItems []middleware.BuilderConfigWith
-
-			if len(configInput.GroupBy) > 0 {
-				withItems = append(withItems, middleware.BuilderConfigWith{
-					Key:   middleware.BuilderConfigWithKeySelectDataBy,
-					Value: configInput.GroupBy,
-					IsArg: true,
-				})
-			}
-
-			if configInput.FilterWith != nil {
-				withItems = append(withItems, middleware.BuilderConfigWith{
-					Key:   middleware.BuilderConfigWithKeyAttributeFilter,
-					Value: configInput.FilterWith,
-					IsArg: true,
-				})
-			}
-
-			var metricMetadata *middleware.MetricMetadata
-			if len(configInput.MetricMetadata) > 0 {
-				for _, v := range configInput.MetricMetadata {
-					metricMetadata = &v
-					break
-				}
-			}
-
-			builderConfig[i] = middleware.BuilderConfigItem{
-				With:           withItems,
-				Columns:        configInput.Columns,
-				Source:         configInput.Source,
-				ID:             configInput.ID,
-				MetaData:       configInput.MetaData,
-				MetricMetadata: metricMetadata,
-				Key:            configInput.Key,
-			}
-		}
+		builderConfig = convertToMiddlewareBuilderConfig(input.BuilderConfig)
 	}
 
 	widget := &middleware.CustomWidget{
@@ -457,11 +477,11 @@ This tool executes the widget's query and returns the visualization data (time s
 }
 
 type GetWidgetDataInput struct {
-	BuilderID     int                            `json:"builder_id,omitempty" jsonschema:"The numeric builder ID of the widget to fetch data for"`
-	Key           string                         `json:"key,omitempty" jsonschema:"Alternative to builder_id: the unique key identifier of the widget"`
-	Label         string                         `json:"label,omitempty" jsonschema:"Alternative to builder_id: the label of the widget"`
-	BuilderConfig []middleware.BuilderConfigItem `json:"builder_config,omitempty" jsonschema:"Widget configuration array containing the query and data source settings"`
-	UseV2         bool                           `json:"use_v2,omitempty" jsonschema:"Set to true to use the newer v2 data format (default: false)"`
+	BuilderID     int                      `json:"builder_id,omitempty" jsonschema:"The numeric builder ID of the widget to fetch data for"`
+	Key           string                   `json:"key,omitempty" jsonschema:"Alternative to builder_id: the unique key identifier of the widget"`
+	Label         string                   `json:"label,omitempty" jsonschema:"Alternative to builder_id: the label of the widget"`
+	BuilderConfig []BuilderConfigItemInput `json:"builder_config,omitempty" jsonschema:"Widget configuration array containing the query and data source settings. Each item's columns MUST be an object with name, aggregation_method, and rollup_method."`
+	UseV2         bool                     `json:"use_v2,omitempty" jsonschema:"Set to true to use the newer v2 data format (default: false)"`
 }
 
 func HandleGetWidgetData(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -470,11 +490,16 @@ func HandleGetWidgetData(s ServerInterface, ctx context.Context, req mcp.CallToo
 		return nil, fmt.Errorf("failed to parse input: %w", err)
 	}
 
+	var builderConfig []middleware.BuilderConfigItem
+	if len(input.BuilderConfig) > 0 {
+		builderConfig = convertToMiddlewareBuilderConfig(input.BuilderConfig)
+	}
+
 	widget := &middleware.CustomWidget{
 		BuilderID:     input.BuilderID,
 		Key:           input.Key,
 		Label:         input.Label,
-		BuilderConfig: input.BuilderConfig,
+		BuilderConfig: builderConfig,
 		UseV2:         input.UseV2,
 	}
 
@@ -501,11 +526,11 @@ type GetMultiWidgetDataInput struct {
 }
 
 type WidgetDataRequest struct {
-	BuilderID     int                            `json:"builder_id,omitempty" jsonschema:"The numeric builder ID of the widget"`
-	Key           string                         `json:"key,omitempty" jsonschema:"The unique key identifier of the widget"`
-	Label         string                         `json:"label,omitempty" jsonschema:"The label of the widget"`
-	BuilderConfig []middleware.BuilderConfigItem `json:"builder_config,omitempty" jsonschema:"Widget configuration array containing query and display settings"`
-	UseV2         bool                           `json:"use_v2,omitempty" jsonschema:"Use v2 data format (default: false)"`
+	BuilderID     int                      `json:"builder_id,omitempty" jsonschema:"The numeric builder ID of the widget"`
+	Key           string                   `json:"key,omitempty" jsonschema:"The unique key identifier of the widget"`
+	Label         string                   `json:"label,omitempty" jsonschema:"The label of the widget"`
+	BuilderConfig []BuilderConfigItemInput `json:"builder_config,omitempty" jsonschema:"Widget configuration array containing query and display settings. Each item's columns MUST be an object with name, aggregation_method, and rollup_method."`
+	UseV2         bool                     `json:"use_v2,omitempty" jsonschema:"Use v2 data format (default: false)"`
 }
 
 func HandleGetMultiWidgetData(s ServerInterface, ctx context.Context, req mcp.CallToolRequest) (*mcp.CallToolResult, error) {
@@ -516,11 +541,16 @@ func HandleGetMultiWidgetData(s ServerInterface, ctx context.Context, req mcp.Ca
 
 	widgets := make([]middleware.CustomWidget, len(input.Widgets))
 	for i, w := range input.Widgets {
+		var builderConfig []middleware.BuilderConfigItem
+		if len(w.BuilderConfig) > 0 {
+			builderConfig = convertToMiddlewareBuilderConfig(w.BuilderConfig)
+		}
+
 		widgets[i] = middleware.CustomWidget{
 			BuilderID:     w.BuilderID,
 			Key:           w.Key,
 			Label:         w.Label,
-			BuilderConfig: w.BuilderConfig,
+			BuilderConfig: builderConfig,
 			UseV2:         w.UseV2,
 		}
 	}
