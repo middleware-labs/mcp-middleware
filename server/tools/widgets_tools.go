@@ -148,6 +148,70 @@ const (
 	RollupNone  RollupMethod = "none"
 )
 
+type FilterOperator string
+
+const (
+	FilterOperatorEq        FilterOperator = "="
+	FilterOperatorNeq       FilterOperator = "!="
+	FilterOperatorLt        FilterOperator = "<"
+	FilterOperatorLte       FilterOperator = "<="
+	FilterOperatorGt        FilterOperator = ">"
+	FilterOperatorGte       FilterOperator = ">="
+	FilterOperatorIn        FilterOperator = "IN"
+	FilterOperatorNotIn     FilterOperator = "NOT IN"
+	FilterOperatorLike      FilterOperator = "LIKE"
+	FilterOperatorNotLike   FilterOperator = "NOT LIKE"
+	FilterOperatorILike     FilterOperator = "ILIKE"
+	FilterOperatorNotILike  FilterOperator = "NOT ILIKE"
+	FilterOperatorBetween   FilterOperator = "BETWEEN"
+	FilterOperatorIsNull    FilterOperator = "IS NULL"
+	FilterOperatorIsNotNull FilterOperator = "IS NOT NULL"
+	FilterOperatorRegex     FilterOperator = "REGEX"
+	FilterOperatorNotRegex  FilterOperator = "NOT REGEX"
+)
+
+type LogicalOperator string
+
+const (
+	LogicalOperatorAnd LogicalOperator = "and"
+	LogicalOperatorOr  LogicalOperator = "or"
+)
+
+type WidgetFilter struct {
+	LogicalOperator LogicalOperator `json:"logical_operator,omitempty" jsonschema:"Logical operator to combine conditions. Use 'and' or 'or'. If set, 'conditions' must be provided.,enum=and,enum=or"`
+	Conditions      []WidgetFilter  `json:"conditions,omitempty" jsonschema:"-"`
+	Field           string          `json:"field,omitempty" jsonschema:"Attribute name (required for leaf condition)"`
+	Operator        FilterOperator  `json:"operator,omitempty" jsonschema:"Comparison operator (required for leaf condition),enum==,enum=!=,enum=<,enum=<=,enum=>,enum=>=,enum=IN,enum=NOT IN,enum=LIKE,enum=NOT LIKE,enum=ILIKE,enum=NOT ILIKE,enum=BETWEEN,enum=IS NULL,enum=IS NOT NULL,enum=REGEX,enum=NOT REGEX"`
+	Value           any             `json:"value,omitempty" jsonschema:"Value to match (required for leaf condition, unless operator is IS NULL/IS NOT NULL)"`
+}
+
+func transformFilter(f *WidgetFilter) map[string]any {
+	if f == nil {
+		return nil
+	}
+
+	if f.LogicalOperator != "" && len(f.Conditions) > 0 {
+		list := make([]map[string]any, len(f.Conditions))
+		for i, child := range f.Conditions {
+			result := transformFilter(&child)
+			if result != nil {
+				list[i] = result
+			}
+		}
+		return map[string]any{string(f.LogicalOperator): list}
+	}
+
+	if f.Field != "" && f.Operator != "" {
+		return map[string]any{
+			f.Field: map[string]any{
+				string(f.Operator): f.Value,
+			},
+		}
+	}
+
+	return nil
+}
+
 type ColumnConfig struct {
 	Name              string            `json:"name" jsonschema:"The metric or metric attribute name (e.g., 'k8s.node.cpu.utilization', 'host.memory.usage'),required"`
 	AggregationMethod AggregationMethod `json:"aggregation_method" jsonschema:"Aggregation method to apply to this column. Supported values: avg, sum, min, max, any (default), uniq, count, group. If empty or 'any', no aggregation is applied.,enum=avg,enum=sum,enum=min,enum=max,enum=any,enum=uniq,enum=count,enum=group"`
@@ -179,7 +243,7 @@ type BuilderConfigItemInput struct {
 	MetricMetadata map[string]middleware.MetricMetadata `json:"metricMetadata,omitempty" jsonschema:"Map of metric names to their metadata. Each key is a metric name (e.g., \"k8s.node.cpu.utilization_percent\") and value is the metadata object with name, label, resource, type, attributes, and config"`
 	Key            string                               `json:"key,omitempty" jsonschema:"Key identifier for this config item"`
 	GroupBy        []string                             `json:"group_by,omitempty" jsonschema:"Array of attribute names to group by (e.g., [\"host.cpu.model.id\"]). This will be converted to SELECT_DATA_BY in the 'with' array"`
-	FilterWith     any                                  `json:"filter_with,omitempty" jsonschema:"Filter conditions object with 'and' or 'or' arrays (e.g., {\"and\": [{\"host.id\": {\"=\": \"ai-team2\"}}, {\"host.name\": {\"LIKE\": \"%ai%\"}}]}). This will be converted to ATTRIBUTE_FILTER in the 'with' array"`
+	FilterWith     *WidgetFilter                        `json:"filter_with,omitempty" jsonschema:"Filter conditions object. Use 'logical_operator' with 'conditions' for complex logic (AND/OR), or 'field', 'operator', and 'value' for simple conditions. The 'conditions' array supports nested filters with the same structure, allowing for complex filter hierarchies."`
 }
 
 func convertToMiddlewareBuilderConfig(input []BuilderConfigItemInput) []middleware.BuilderConfigItem {
@@ -196,11 +260,14 @@ func convertToMiddlewareBuilderConfig(input []BuilderConfigItemInput) []middlewa
 		}
 
 		if configInput.FilterWith != nil {
-			withItems = append(withItems, middleware.BuilderConfigWith{
-				Key:   middleware.BuilderConfigWithKeyAttributeFilter,
-				Value: configInput.FilterWith,
-				IsArg: true,
-			})
+			transformedFilter := transformFilter(configInput.FilterWith)
+			if transformedFilter != nil {
+				withItems = append(withItems, middleware.BuilderConfigWith{
+					Key:   middleware.BuilderConfigWithKeyAttributeFilter,
+					Value: transformedFilter,
+					IsArg: true,
+				})
+			}
 		}
 
 		var metricMetadata *middleware.MetricMetadata
