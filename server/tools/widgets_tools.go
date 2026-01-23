@@ -116,7 +116,7 @@ type CreateWidgetInput struct {
 	ReportKey         string                   `json:"report_key,omitempty" jsonschema:"The unique key identifier of the dashboard (report) where this widget will be created"`
 	ReportName        string                   `json:"report_name,omitempty" jsonschema:"The name of the dashboard (report) where this widget will be created"`
 	ReportDescription string                   `json:"report_description,omitempty" jsonschema:"Optional description of the dashboard (report)"`
-	ReportMetadata    any                      `json:"report_metadata,omitempty" jsonschema:"Optional metadata for the dashboard (report)"`
+	ReportMetadata    map[string]any           `json:"report_metadata,omitempty" jsonschema:"Optional metadata for the dashboard (report) as a key-value object"`
 	DisableUserEdit   bool                     `json:"disable_user_edit,omitempty" jsonschema:"Whether to disable user editing of the widget (default: false)"`
 	Layout            *LayoutItemInput         `json:"layout" jsonschema:"Layout for the widget including coordinates and size. Based on the widget type, you MUST set proper layout. Width (w) must be minimum 4 (strict minimum requirement) and height (h) must be minimum 6 (strict minimum requirement),required"`
 }
@@ -413,7 +413,7 @@ type UpdateWidgetInput struct {
 	ReportKey         string                   `json:"report_key,omitempty" jsonschema:"The unique key identifier of the dashboard (report) where this widget belongs"`
 	ReportName        string                   `json:"report_name,omitempty" jsonschema:"The name of the dashboard (report) where this widget belongs"`
 	ReportDescription string                   `json:"report_description,omitempty" jsonschema:"Optional description of the dashboard (report)"`
-	ReportMetadata    any                      `json:"report_metadata,omitempty" jsonschema:"Optional metadata for the dashboard (report)"`
+	ReportMetadata    map[string]any           `json:"report_metadata,omitempty" jsonschema:"Optional metadata for the dashboard (report) as a key-value object"`
 	DisableUserEdit   bool                     `json:"disable_user_edit,omitempty" jsonschema:"Whether to disable user editing of the widget (default: false)"`
 	Layout            *LayoutItemInput         `json:"layout" jsonschema:"Layout for the widget including coordinates and size. Based on the widget type, you MUST set proper layout. Width (w) must be minimum 4 (strict minimum requirement) and height (h) must be minimum 6 (strict minimum requirement),required"`
 }
