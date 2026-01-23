@@ -67,17 +67,39 @@ make build
 
 ### Step 3: Configure
 
-Create a `.env` file:
+Create a `.env` file from the example:
 ```bash
 cp .env.example .env
 ```
 
-Edit `.env` with your credentials:
+Or use the Makefile command:
+```bash
+make init-env
+```
+
+Edit `.env` with your credentials. The file should contain:
 ```env
+# Required: Your Middleware API Key
 MIDDLEWARE_API_KEY=your_api_key_here
+
+# Required: Your Middleware project URL
 MIDDLEWARE_BASE_URL=https://your-project.middleware.io
+
+# Optional: Application mode (default: stdio)
 APP_MODE=stdio
 ```
+
+**Required Variables:**
+- `MIDDLEWARE_API_KEY`: Your API key from [Middleware Settings](https://app.middleware.io/settings/api-keys)
+- `MIDDLEWARE_BASE_URL`: Your project URL (e.g., `https://your-project.middleware.io`)
+
+**Optional Variables:**
+- `APP_MODE`: Server mode - `stdio` (default), `http`, or `sse`
+- `APP_HOST`: Server host for http/sse modes (default: `localhost`)
+- `APP_PORT`: Server port for http/sse modes (default: `8080`)
+- `EXCLUDED_TOOLS`: Comma-separated list of tools to exclude (e.g., `delete_dashboard,delete_widget`)
+
+See the [Configuration](#configuration) section below for all available options.
 
 ### Step 4: Test the Server
 
@@ -205,12 +227,15 @@ The server supports three transport modes:
 
 | Environment Variable | Required | Default | Description |
 |---------------------|----------|---------|-------------|
-| `MIDDLEWARE_API_KEY` | ✅ Yes | - | Your Middleware API key from settings |
+| `MIDDLEWARE_API_KEY` | ✅ Yes* | - | Your Middleware API key from settings |
+| `AUTHORIZATION` | ✅ Yes* | - | Alternative authorization token (if not using API key) |
 | `MIDDLEWARE_BASE_URL` | ✅ Yes | - | Your Middleware project URL (e.g., `https://your-project.middleware.io`) |
 | `APP_MODE` | No | `stdio` | Server mode: `stdio`, `http`, or `sse` |
 | `APP_HOST` | No | `localhost` | Server host (for http/sse modes) |
 | `APP_PORT` | No | `8080` | Server port (for http/sse modes) |
 | `EXCLUDED_TOOLS` | No | - | Comma-separated list of tools to exclude |
+
+\* Either `MIDDLEWARE_API_KEY` or `AUTHORIZATION` must be provided.
 
 ### Tool Exclusion
 
