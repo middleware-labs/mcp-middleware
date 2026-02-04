@@ -89,7 +89,7 @@ This tool creates a new dashboard with the specified configuration. Dashboards c
 
 type CreateDashboardInput struct {
 	Label       string `json:"label" jsonschema:"The dashboard name/title. Must be at least 3 characters long,required,minLength=3"`
-	Visibility  string `json:"visibility" jsonschema:"Dashboard visibility setting. Must be either 'public' (shared with team) or 'private' (personal only),required,enum=public|private"`
+	Visibility  string `json:"visibility" jsonschema:"Dashboard visibility setting. Must be either 'public' (shared with team) or 'private' (personal only),required,enum=public,enum=private"`
 	Description string `json:"description,omitempty" jsonschema:"Optional detailed description of the dashboard's purpose and contents"`
 	Key         string `json:"key,omitempty" jsonschema:"Optional unique key identifier for the dashboard. If not provided, will be auto-generated"`
 }
@@ -129,7 +129,7 @@ This tool modifies an existing dashboard identified by its ID. You can update th
 type UpdateDashboardInput struct {
 	ID          int    `json:"id" jsonschema:"The numeric ID of the dashboard to update,required"`
 	Label       string `json:"label" jsonschema:"The updated dashboard name/title. Must be at least 3 characters long,required,minLength=3"`
-	Visibility  string `json:"visibility" jsonschema:"Updated visibility setting. Must be either 'public' or 'private',required,enum=public|private"`
+	Visibility  string `json:"visibility" jsonschema:"Updated visibility setting. Must be either 'public' or 'private',required,enum=public,enum=private"`
 	Description string `json:"description,omitempty" jsonschema:"Updated description of the dashboard"`
 	Key         string `json:"key,omitempty" jsonschema:"Updated unique key identifier. Must be unique across all dashboards"`
 }
@@ -197,7 +197,7 @@ This tool duplicates an existing dashboard, creating a new dashboard with the sa
 
 type CloneDashboardInput struct {
 	Label       string `json:"label" jsonschema:"The name for the new cloned dashboard. Must be at least 3 characters,required,minLength=3"`
-	Visibility  string `json:"visibility" jsonschema:"Visibility setting for the cloned dashboard: 'public' or 'private',required,enum=public|private"`
+	Visibility  string `json:"visibility" jsonschema:"Visibility setting for the cloned dashboard: 'public' or 'private',required,enum=public,enum=private"`
 	Description string `json:"description,omitempty" jsonschema:"Optional description for the cloned dashboard"`
 	SourceKey   string `json:"source_key,omitempty" jsonschema:"The unique key of the source dashboard to clone from"`
 }

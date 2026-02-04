@@ -31,7 +31,7 @@ type ListErrorsInput struct {
 	ToTs   int64  `json:"to_ts" jsonschema:"End timestamp in milliseconds (Unix timestamp * 1000),required"`
 	Page   int    `json:"page" jsonschema:"Page number for pagination (default: 1),required"`
 	Filter string `json:"filter,omitempty" jsonschema:"Optional filter string to narrow down results"`
-	Status string `json:"status" jsonschema:"Filter by status,required,enum=all|for_review|resolved|reviewed|ignored"`
+	Status string `json:"status" jsonschema:"Filter by status,required,enum=all,enum=for_review,enum=resolved,enum=reviewed,enum=ignored"`
 	Search string `json:"search,omitempty" jsonschema:"Search term to filter incidents by title or description"`
 }
 

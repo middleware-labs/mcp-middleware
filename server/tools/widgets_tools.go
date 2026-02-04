@@ -108,7 +108,7 @@ func getWidgetAppID(widgetType string) int {
 
 type CreateWidgetInput struct {
 	Label             string                   `json:"label" jsonschema:"The display name for the widget (e.g., 'CPU Usage', 'Error Rate'),required"`
-	WidgetType        string                   `json:"widget_type" jsonschema:"The type of chart/widget to create,required,enum=time_series_chart|bar_chart|data_table|query_value|pie_chart|scatter_plot|count_chart|tree_chart|top_list_chart|heatmap_chart|hexagon_chart"`
+	WidgetType        string                   `json:"widget_type" jsonschema:"The type of chart/widget to create,required,enum=time_series_chart,enum=bar_chart,enum=data_table,enum=query_value,enum=pie_chart,enum=scatter_plot,enum=count_chart,enum=tree_chart,enum=top_list_chart,enum=heatmap_chart,enum=hexagon_chart"`
 	Key               string                   `json:"key,omitempty" jsonschema:"Optional unique key identifier for the widget"`
 	Description       string                   `json:"description,omitempty" jsonschema:"Optional description explaining what the widget displays"`
 	BuilderConfig     []BuilderConfigItemInput `json:"builderConfig" jsonschema:"Widget configuration array containing queries, chart type, display settings, and data sources. Each item should have: columns, source, id, meta_data, metricMetadata, key, group_by, and filter_with"`
@@ -405,7 +405,7 @@ IMPORTANT - Layout Requirements:
 type UpdateWidgetInput struct {
 	BuilderID         int                      `json:"builder_id" jsonschema:"The widget ID (builder ID) of the widget that needs to be updated,required"`
 	Label             string                   `json:"label,omitempty" jsonschema:"The display name for the widget (e.g., 'CPU Usage', 'Error Rate')"`
-	WidgetType        string                   `json:"widget_type,omitempty" jsonschema:"The type of chart/widget,enum=time_series_chart|bar_chart|data_table|query_value|pie_chart|scatter_plot|count_chart|tree_chart|top_list_chart|heatmap_chart|hexagon_chart"`
+	WidgetType        string                   `json:"widget_type,omitempty" jsonschema:"The type of chart/widget,enum=time_series_chart,enum=bar_chart,enum=data_table,enum=query_value,enum=pie_chart,enum=scatter_plot,enum=count_chart,enum=tree_chart,enum=top_list_chart,enum=heatmap_chart,enum=hexagon_chart"`
 	Key               string                   `json:"key,omitempty" jsonschema:"Optional unique key identifier for the widget"`
 	Description       string                   `json:"description,omitempty" jsonschema:"Optional description explaining what the widget displays"`
 	BuilderConfig     []BuilderConfigItemInput `json:"builderConfig,omitempty" jsonschema:"Widget configuration array containing queries, chart type, display settings, and data sources. Each item should have: columns, source, id, meta_data, metricMetadata, key, group_by, and filter_with"`
