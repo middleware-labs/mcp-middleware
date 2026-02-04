@@ -56,8 +56,8 @@ Resource Selection:
 }
 
 type GetMetricsInput struct {
-	DataType   MetricsDataType `json:"data_type" jsonschema:"Type of data to fetch. DataType is the type of data that is being fetched. Must be one of: 'metrics' (metric names), 'filters' (filter dimensions), 'groupby' (grouping tags),required,enum=metrics|filters|groupby"`
-	WidgetType WidgetType      `json:"widget_type" jsonschema:"Widget type for the query. Must be one of: 'timeseries' (for timeseries, bar, stackbar, area), 'list' (for table, pie, scatter, tree, toplist, hexagon), or 'queryValue' (for queryvalue),required,enum=timeseries|list|queryValue"`
+	DataType   MetricsDataType `json:"data_type" jsonschema:"Type of data to fetch. DataType is the type of data that is being fetched. Must be one of: 'metrics' (metric names), 'filters' (filter dimensions), 'groupby' (grouping tags),required,enum=metrics,enum=filters,enum=groupby"`
+	WidgetType WidgetType      `json:"widget_type" jsonschema:"Widget type for the query. Must be one of: 'timeseries' (for timeseries, bar, stackbar, area), 'list' (for table, pie, scatter, tree, toplist, hexagon), or 'queryValue' (for queryvalue),required,enum=timeseries,enum=list,enum=queryValue"`
 	// KpiType                 int        `json:"kpi_type,omitempty" jsonschema:"Single KPI type filter. 1=Metric (infrastructure/APM metrics), 2=Log (log data), 3=Trace (distributed tracing data)"`
 	// KpiTypes                []int      `json:"kpi_types,omitempty" jsonschema:"Array of KPI types to include. Use this for multi-type queries"`
 	// Resource                string   `json:"resource,omitempty" jsonschema:"The resource type name obtained from calling get_resources. This identifies which resource type to filter metrics by and correlates the data source. IMPORTANT: You can ONLY use resource type names that are returned by the get_resources tool. You must first call get_resources to discover available resources, then use only those exact resource type names here. Examples: 'host', 'container', 'log', 'trace', 'k8s.pod', 'database', etc. Always use the exact resource type name returned by get_resources."`

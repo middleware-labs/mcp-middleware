@@ -341,7 +341,7 @@ type BuilderConfigItem struct {
 }
 
 type BuilderConfigWith struct {
-	Key   BuilderConfigWithKey `json:"key" jsonschema:"The filter/groupby key. Must be either 'ATTRIBUTE_FILTER' for filtering or 'SELECT_DATA_BY' for group by,enum=ATTRIBUTE_FILTER|SELECT_DATA_BY"`
+	Key   BuilderConfigWithKey `json:"key" jsonschema:"The filter/groupby key. Must be either 'ATTRIBUTE_FILTER' for filtering or 'SELECT_DATA_BY' for group by,enum=ATTRIBUTE_FILTER,enum=SELECT_DATA_BY"`
 	Value any                  `json:"value" jsonschema:"The filter/groupby value. For ATTRIBUTE_FILTER: object with 'and' or 'or' arrays containing filter conditions (e.g., {\"and\": [{\"host.id\": {\"=\": \"ai-team2\"}}, {\"host.name\": {\"LIKE\": \"%ai%\"}}]}). For SELECT_DATA_BY: array of attribute names (e.g., [\"host.cpu.model.id\"])"`
 	IsArg bool                 `json:"is_arg" jsonschema:"Whether this is an argument (typically true)"`
 }
