@@ -332,8 +332,8 @@ List and retrieve detailed information about errors and incidents in the system.
 **Parameters:**
 - `queries` (array of objects, **required**): Array of query objects to execute. Each query can target different resources and data types
   - Each query object contains:
-    - `chartType` (string, **required**): Type of chart/visualization. Common values: 'data_table', 'timeseries', 'bar_chart', 'pie_chart', 'line_chart'
-    - `columns` (array of strings, **required**): Array of column names to retrieve. For logs: `['body', 'timestamp', 'level']`. For metrics: metric names. For resources: attribute names
+    - `chartType` (string, **required**): Type of chart/visualization. Must be one of: `time_series_chart`, `bar_chart`, `pie_chart`, `scatter_plot`, `data_table`, `count_chart`, `tree_chart`, `top_list_chart`, `heatmap_chart`, `hexagon_chart`, `query_value` (same keys as create_widget widget_type)
+    - `columns` (array of objects, **required**): Array of column configs. Each object has `name` (metric/attribute name; for logs use `body`, `timestamp`, `level`) and optionally `aggregation_method` (avg, sum, min, max, uniq, count, group) and `rollup_method` (avg, sum, min, max, none). Same format as create_widget columns; converted to query format before sending
     - `resources` (array of strings, **required**): Array of resource types to query. IMPORTANT: For logs, always use `['log']`. For other data types (metrics, traces, etc.), FIRST use `get_resources` tool to discover available resources, THEN use those resource types here. Examples: `['log']` for logs, `['container']` for container data (discovered via get_resources), `['host']` for host data, `['trace']` for traces, `['k8s.pod']` for Kubernetes pods
     - `timeRange` (object, **required**): Time range for the query with from and to timestamps in milliseconds
       - `from` (integer, **required**): Start timestamp in milliseconds (Unix timestamp * 1000)

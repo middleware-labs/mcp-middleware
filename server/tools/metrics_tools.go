@@ -25,6 +25,24 @@ const (
 	MetricsDataTypeGroupby MetricsDataType = "groupby"
 )
 
+// ChartType matches widget type keys used by getWidgetAppID in widgets_tools.go.
+// Pass this string value in queries; backend expects the same chart type names.
+type ChartType string
+
+const (
+	ChartTypeTimeSeries  ChartType = "time_series_chart"
+	ChartTypeBar         ChartType = "bar_chart"
+	ChartTypePie         ChartType = "pie_chart"
+	ChartTypeScatter     ChartType = "scatter_plot"
+	ChartTypeDataTable   ChartType = "data_table"
+	ChartTypeCount       ChartType = "count_chart"
+	ChartTypeTree        ChartType = "tree_chart"
+	ChartTypeTopList     ChartType = "top_list_chart"
+	ChartTypeHeatmap     ChartType = "heatmap_chart"
+	ChartTypeHexagon     ChartType = "hexagon_chart"
+	ChartTypeQueryValue  ChartType = "query_value"
+)
+
 func NewGetMetricsTool() mcp.Tool {
 	return mcp.NewTool(
 		"get_metrics",
@@ -167,8 +185,8 @@ type QueryInput struct {
 }
 
 type QueryInputItem struct {
-	ChartType string         `json:"chartType" jsonschema:"Type of chart/visualization. Common values: 'data_table', 'timeseries', 'bar_chart', 'pie_chart', 'line_chart',required"`
-	Columns   []string       `json:"columns" jsonschema:"Array of column names to retrieve. For logs: ['body', 'timestamp', 'level']. For metrics: metric names. For resources: attribute names,required"`
+	ChartType ChartType      `json:"chartType" jsonschema:"Type of chart/visualization. Must be one of the supported chart type keys (same as create_widget widget_type),required,enum=time_series_chart,enum=bar_chart,enum=pie_chart,enum=scatter_plot,enum=data_table,enum=count_chart,enum=tree_chart,enum=top_list_chart,enum=heatmap_chart,enum=hexagon_chart,enum=query_value"`
+	Columns   []ColumnConfig `json:"columns" jsonschema:"Array of column configs: each has 'name' (metric/attribute name, e.g. 'body', 'timestamp', 'k8s.node.cpu.utilization') and optional 'aggregation_method' (avg, sum, min, max, uniq, count, group) and 'rollup_method' (avg, sum, min, max, none). For logs use name only (e.g. body, timestamp, level). Same format as create_widget columns.,required"`
 	Resources []string       `json:"resources" jsonschema:"Array of resource types to query. IMPORTANT: For logs, always use ['log']. For other data types (metrics, traces, etc.), FIRST use get_resources tool to discover available resources, THEN use those resource types here. Examples: ['log'] for logs, ['container'] for container data (discovered via get_resources), ['host'] for host data, ['trace'] for traces, ['k8s.pod'] for Kubernetes pods,required"`
 	TimeRange QueryTimeRange `json:"timeRange" jsonschema:"Time range for the query with from and to timestamps in milliseconds,required"`
 	Filters   map[string]any `json:"filters,omitempty" jsonschema:"Optional filters to apply. Format: {\"field.name\": {\"=\": \"value\"}} or {\"field.name\": {\"!=\": \"value\"}}"`
@@ -188,9 +206,11 @@ func HandleQuery(s ServerInterface, ctx context.Context, req mcp.CallToolRequest
 
 	queries := make([]middleware.Query, len(input.Queries))
 	for i, q := range input.Queries {
+		// Convert column configs to request format (same as create_widget: agg(name) or agg(name, value(rollup)))
+		columnStrings := transformColumns(q.Columns)
 		queries[i] = middleware.Query{
-			ChartType: q.ChartType,
-			Columns:   q.Columns,
+			ChartType: string(q.ChartType),
+			Columns:   columnStrings,
 			Resources: q.Resources,
 			TimeRange: middleware.QueryTimeRange{
 				From: q.TimeRange.From,
