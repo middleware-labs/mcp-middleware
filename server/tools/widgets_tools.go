@@ -246,9 +246,27 @@ type BuilderConfigItemInput struct {
 	FilterWith     *WidgetFilter                        `json:"filter_with,omitempty" jsonschema:"Filter conditions object. Use 'logical_operator' with 'conditions' for complex logic (AND/OR), or 'field', 'operator', and 'value' for simple conditions. The 'conditions' array supports nested filters with the same structure, allowing for complex filter hierarchies."`
 }
 
+func metricMetadataForColumnIndex(configInput BuilderConfigItemInput, colIdx int) *middleware.MetricMetadata {
+	if colIdx < 0 || colIdx >= len(configInput.Columns) {
+		return nil
+	}
+	name := configInput.Columns[colIdx].Name
+	if m, ok := configInput.MetricMetadata[name]; ok {
+		mm := m
+		return &mm
+	}
+	if len(configInput.MetricMetadata) > 0 {
+		for _, v := range configInput.MetricMetadata {
+			mm := v
+			return &mm
+		}
+	}
+	return nil
+}
+
 func convertToMiddlewareBuilderConfig(input []BuilderConfigItemInput) []middleware.BuilderConfigItem {
-	builderConfig := make([]middleware.BuilderConfigItem, len(input))
-	for i, configInput := range input {
+	var builderConfig []middleware.BuilderConfigItem
+	for _, configInput := range input {
 		var withItems []middleware.BuilderConfigWith
 
 		if len(configInput.GroupBy) > 0 {
@@ -270,24 +288,21 @@ func convertToMiddlewareBuilderConfig(input []BuilderConfigItemInput) []middlewa
 			}
 		}
 
-		var metricMetadata *middleware.MetricMetadata
-		if len(configInput.MetricMetadata) > 0 {
-			for _, v := range configInput.MetricMetadata {
-				metricMetadata = &v
-				break
-			}
+		transformedColumns := transformColumns(configInput.Columns)
+		if len(transformedColumns) == 0 {
+			continue
 		}
 
-		transformedColumns := transformColumns(configInput.Columns)
-
-		builderConfig[i] = middleware.BuilderConfigItem{
-			With:           withItems,
-			Columns:        transformedColumns,
-			Source:         configInput.Source,
-			ID:             configInput.ID,
-			MetaData:       configInput.MetaData,
-			MetricMetadata: metricMetadata,
-			Key:            configInput.Key,
+		for j := range transformedColumns {
+			builderConfig = append(builderConfig, middleware.BuilderConfigItem{
+				With:           withItems,
+				Columns:        []string{transformedColumns[j]},
+				Source:         configInput.Source,
+				ID:             configInput.ID,
+				MetaData:       configInput.MetaData,
+				MetricMetadata: metricMetadataForColumnIndex(configInput, j),
+				Key:            configInput.Key,
+			})
 		}
 	}
 	return builderConfig
