@@ -35,7 +35,7 @@ func HandleListAlerts(s ServerInterface, ctx context.Context, req mcp.CallToolRe
 		OrderBy: input.OrderBy,
 	}
 
-	result, err := s.Client().GetAlerts(ctx, input.RuleID, params)
+	result, err := s.Client(ctx).GetAlerts(ctx, input.RuleID, params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get alerts: %w", err)
 	}
@@ -91,7 +91,7 @@ func HandleCreateAlert(s ServerInterface, ctx context.Context, req mcp.CallToolR
 		TriggeredAt: input.TriggeredAt,
 	}
 
-	result, err := s.Client().CreateAlert(ctx, input.RuleID, alert)
+	result, err := s.Client(ctx).CreateAlert(ctx, input.RuleID, alert)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create alert: %w", err)
 	}
@@ -124,7 +124,7 @@ func HandleGetAlertStats(s ServerInterface, ctx context.Context, req mcp.CallToo
 		return nil, fmt.Errorf("failed to parse input: %w", err)
 	}
 
-	result, err := s.Client().GetAlertStats(ctx, input.RuleID)
+	result, err := s.Client(ctx).GetAlertStats(ctx, input.RuleID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get alert stats: %w", err)
 	}

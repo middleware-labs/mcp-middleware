@@ -5,6 +5,7 @@
 *.so
 *.dylib
 mcp-middleware
+mcp-mw
 
 # Test binary, built with `go test -c`
 *.test

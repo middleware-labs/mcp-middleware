@@ -56,7 +56,7 @@ func HandleListErrors(s ServerInterface, ctx context.Context, req mcp.CallToolRe
 		Search: input.Search,
 	}
 
-	result, err := s.Client().GetIncidents(ctx, params)
+	result, err := s.Client(ctx).GetIncidents(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get errors/incidents: %w", err)
 	}
@@ -99,7 +99,7 @@ func HandleGetErrorDetails(s ServerInterface, ctx context.Context, req mcp.CallT
 		Filter:      input.Filter,
 	}
 
-	result, err := s.Client().GetIncidentDetail(ctx, params)
+	result, err := s.Client(ctx).GetIncidentDetail(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get error details: %w", err)
 	}

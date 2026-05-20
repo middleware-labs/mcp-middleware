@@ -41,7 +41,7 @@ func HandleListDashboards(s ServerInterface, ctx context.Context, req mcp.CallTo
 		DisplayScope: input.DisplayScope,
 	}
 
-	result, err := s.Client().GetDashboards(ctx, params)
+	result, err := s.Client(ctx).GetDashboards(ctx, params)
 	if err != nil {
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func HandleGetDashboard(s ServerInterface, ctx context.Context, req mcp.CallTool
 		return nil, fmt.Errorf("failed to parse input: %w", err)
 	}
 
-	result, err := s.Client().GetDashboardByKey(ctx, input.ReportKey)
+	result, err := s.Client(ctx).GetDashboardByKey(ctx, input.ReportKey)
 	if err != nil {
 		return nil, err
 	}
@@ -108,7 +108,7 @@ func HandleCreateDashboard(s ServerInterface, ctx context.Context, req mcp.CallT
 		Key:          input.Key,
 	}
 
-	result, err := s.Client().CreateDashboard(ctx, dashboardReq)
+	result, err := s.Client(ctx).CreateDashboard(ctx, dashboardReq)
 	if err != nil {
 		return nil, err
 	}
@@ -149,7 +149,7 @@ func HandleUpdateDashboard(s ServerInterface, ctx context.Context, req mcp.CallT
 		Key:          input.Key,
 	}
 
-	result, err := s.Client().UpdateDashboard(ctx, input.ID, dashboardReq)
+	result, err := s.Client(ctx).UpdateDashboard(ctx, input.ID, dashboardReq)
 	if err != nil {
 		return nil, err
 	}
@@ -177,7 +177,7 @@ func HandleDeleteDashboard(s ServerInterface, ctx context.Context, req mcp.CallT
 		return nil, fmt.Errorf("failed to parse input: %w", err)
 	}
 
-	err = s.Client().DeleteDashboard(ctx, input.ID)
+	err = s.Client(ctx).DeleteDashboard(ctx, input.ID)
 	if err != nil {
 		return nil, err
 	}
@@ -216,7 +216,7 @@ func HandleCloneDashboard(s ServerInterface, ctx context.Context, req mcp.CallTo
 		Key:          input.SourceKey,
 	}
 
-	result, err := s.Client().CloneDashboard(ctx, dashboardReq)
+	result, err := s.Client(ctx).CloneDashboard(ctx, dashboardReq)
 	if err != nil {
 		return nil, err
 	}
@@ -245,7 +245,7 @@ func HandleSetDashboardFavorite(s ServerInterface, ctx context.Context, req mcp.
 		return nil, fmt.Errorf("failed to parse input: %w", err)
 	}
 
-	err = s.Client().SetDashboardFavorite(ctx, input.ReportID, input.Favorite)
+	err = s.Client(ctx).SetDashboardFavorite(ctx, input.ReportID, input.Favorite)
 	if err != nil {
 		return nil, err
 	}

@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-middleware
+  labels:
+    app: mcp-middleware
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mcp-middleware
+  template:
+    metadata:
+      labels:
+        app: mcp-middleware
+    spec:
+      # Uncomment if pulling from a private registry (e.g. ghcr.io).
+      # imagePullSecrets:
+      #   - name: ghcr-pull
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532          # distroless "nonroot" uid
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: mcp-middleware
+          # Pin to an immutable tag in real deployments (e.g. :v1.0.0).
+          image: ghcr.io/middleware-labs/mcp-middleware:latest
+          imagePullPolicy: IfNotPresent
+          # The binary to run. Declared here rather than via the image ENTRYPOINT.
+          command: ["/app/mcp-middleware"]
+          ports:
+            - name: http
+              containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: mcp-middleware
+          # The Protected Resource Metadata endpoint is unauthenticated and cheap,
+          # so it doubles as the health probe target.
+          readinessProbe:
+            httpGet:
+              path: /.well-known/oauth-protected-resource/mcp
+              port: http
+            initialDelaySeconds: 3
+            periodSeconds: 10
+            timeoutSeconds: 3
+          livenessProbe:
+            httpGet:
+              path: /.well-known/oauth-protected-resource/mcp
+              port: http
+            initialDelaySeconds: 10
+            periodSeconds: 20
+            timeoutSeconds: 3
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop:
+                - ALL

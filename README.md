@@ -94,7 +94,7 @@ APP_MODE=stdio
 - `MIDDLEWARE_BASE_URL`: Your project URL (e.g., `https://your-project.middleware.io`)
 
 **Optional Variables:**
-- `APP_MODE`: Server mode - `stdio` (default), `http`, or `sse`
+- `APP_MODE`: Server mode - `http` (default), `stdio`, or `sse`
 - `APP_HOST`: Server host for http/sse modes (default: `localhost`)
 - `APP_PORT`: Server port for http/sse modes (default: `8080`)
 - `EXCLUDED_TOOLS`: Comma-separated list of tools to exclude (e.g., `delete_dashboard,delete_widget`)
@@ -219,8 +219,8 @@ Get detailed information about error with fingerprint 7693967476886782339
 
 The server supports three transport modes:
 
-- **stdio** (default): Standard input/output transport for command-line usage
-- **http**: Streamable HTTP transport for web-based clients (uses `NewStreamableHTTPServer`)
+- **stdio**: Standard input/output transport for command-line usage
+- **http** (default): Streamable HTTP transport for web-based clients (uses `NewStreamableHTTPServer`)
 - **sse**: Server-Sent Events transport for real-time streaming (uses `NewSSEServer`)
 
 ## Configuration
@@ -230,7 +230,7 @@ The server supports three transport modes:
 | `MIDDLEWARE_API_KEY` | ✅ Yes* | - | Your Middleware API key from settings |
 | `AUTHORIZATION` | ✅ Yes* | - | Alternative authorization token (if not using API key) |
 | `MIDDLEWARE_BASE_URL` | ✅ Yes | - | Your Middleware project URL (e.g., `https://your-project.middleware.io`) |
-| `APP_MODE` | No | `stdio` | Server mode: `stdio`, `http`, or `sse` |
+| `APP_MODE` | No | `http` | Server mode: `stdio`, `http`, or `sse` |
 | `APP_HOST` | No | `localhost` | Server host (for http/sse modes) |
 | `APP_PORT` | No | `8080` | Server port (for http/sse modes) |
 | `EXCLUDED_TOOLS` | No | - | Comma-separated list of tools to exclude |

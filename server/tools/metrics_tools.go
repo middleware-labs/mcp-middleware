@@ -117,7 +117,7 @@ func HandleGetMetrics(s ServerInterface, ctx context.Context, req mcp.CallToolRe
 		// ReturnOnlyMandatoryData: input.ReturnOnlyMandatoryData,
 	}
 
-	result, err := s.Client().GetMetrics(ctx, metricsReq)
+	result, err := s.Client(ctx).GetMetrics(ctx, metricsReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get metrics: %w", err)
 	}
@@ -146,7 +146,7 @@ func HandleGetResources(s ServerInterface, ctx context.Context, req mcp.CallTool
 	}
 	_ = input // Empty struct, no fields to use
 
-	result, err := s.Client().GetResources(ctx)
+	result, err := s.Client(ctx).GetResources(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get resources: %w", err)
 	}
@@ -225,7 +225,7 @@ func HandleQuery(s ServerInterface, ctx context.Context, req mcp.CallToolRequest
 		Queries: queries,
 	}
 
-	result, err := s.Client().Query(ctx, queryReq)
+	result, err := s.Client(ctx).Query(ctx, queryReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to execute query: %w", err)
 	}

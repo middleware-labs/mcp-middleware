@@ -2,7 +2,12 @@ package integration_test
 
 import (
 	"context"
+	"encoding/base64"
+	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -11,189 +16,191 @@ import (
 	"mcp-middleware/server"
 )
 
-// TestFullServerInitialization tests the complete server initialization flow
-func TestFullServerInitialization(t *testing.T) {
-	// Set up test environment
-	os.Setenv("MIDDLEWARE_API_KEY", "test-api-key")
-	os.Setenv("MIDDLEWARE_BASE_URL", "https://test.middleware.io")
-	defer func() {
-		os.Unsetenv("MIDDLEWARE_API_KEY")
-		os.Unsetenv("MIDDLEWARE_BASE_URL")
-	}()
+func clearEnv() {
+	for _, k := range []string{
+		"APP_MODE", "APP_HOST", "APP_PORT",
+		"MCP_SERVER_URL", "MW_AUTH_SERVER_URL", "MCP_SCOPES",
+		"MW_TENANT_BASE_URL_TEMPLATE",
+	} {
+		os.Unsetenv(k)
+	}
+}
 
-	// Load configuration
+func TestFullServerInitialization(t *testing.T) {
+	clearEnv()
+	defer clearEnv()
+	os.Setenv("APP_MODE", "http")
+	os.Setenv("MW_AUTH_SERVER_URL", "https://app.middleware.io")
+
 	cfg, err := config.Load()
 	if err != nil {
 		t.Fatalf("Failed to load config: %v", err)
 	}
 
-	// Create server
 	srv := server.New(cfg)
 	if srv == nil {
 		t.Fatal("Failed to create server")
 	}
-
-	// Server should be ready to run
-	// (We don't actually run it to avoid blocking the test)
-}
-
-func TestClientServerIntegration(t *testing.T) {
-	// This test verifies that the client and server components
-	// can be initialized together without conflicts
-
-	os.Setenv("MIDDLEWARE_API_KEY", "test-api-key")
-	os.Setenv("MIDDLEWARE_BASE_URL", "https://test.middleware.io")
-	defer func() {
-		os.Unsetenv("MIDDLEWARE_API_KEY")
-		os.Unsetenv("MIDDLEWARE_BASE_URL")
-	}()
-
-	// Load config
-	cfg, err := config.Load()
-	if err != nil {
-		t.Fatalf("Config load failed: %v", err)
-	}
-
-	// Create client
-	client := middleware.NewClient(cfg.MiddlewareBaseURL, cfg.MiddlewareAPIKey)
-	if client == nil {
-		t.Fatal("Client creation failed")
-	}
-
-	// Create server
-	srv := server.New(cfg)
-	if srv == nil {
-		t.Fatal("Server creation failed")
-	}
-
-	// Both client and server should coexist
 }
 
 func TestConfigToServerFlow(t *testing.T) {
-	// Test the complete flow from config to server initialization
-
 	tests := []struct {
-		name          string
-		envVars       map[string]string
-		wantErr       bool
-		checkExcluded bool
+		name    string
+		envVars map[string]string
+		wantErr bool
 	}{
 		{
-			name: "minimal config",
+			name: "stdio defaults",
 			envVars: map[string]string{
-				"MIDDLEWARE_API_KEY":  "key123",
-				"MIDDLEWARE_BASE_URL": "https://app.middleware.io",
+				"APP_MODE": "stdio",
 			},
-			wantErr: false,
 		},
 		{
-			name: "with excluded tools",
+			name: "http minimal",
 			envVars: map[string]string{
-				"MIDDLEWARE_API_KEY":  "key123",
-				"MIDDLEWARE_BASE_URL": "https://app.middleware.io",
-				"EXCLUDED_TOOLS":      "delete_dashboard,create_alert",
+				"APP_MODE":           "http",
+				"MW_AUTH_SERVER_URL": "https://app.middleware.io",
 			},
-			wantErr:       false,
-			checkExcluded: true,
 		},
 		{
-			name: "missing api key",
+			name: "http missing MW_AUTH_SERVER_URL",
 			envVars: map[string]string{
-				"MIDDLEWARE_BASE_URL": "https://app.middleware.io",
+				"APP_MODE": "http",
 			},
 			wantErr: true,
 		},
 		{
-			name: "custom app mode",
+			name: "custom host/port",
 			envVars: map[string]string{
-				"MIDDLEWARE_API_KEY":  "key123",
-				"MIDDLEWARE_BASE_URL": "https://app.middleware.io",
-				"APP_MODE":            "http",
-				"APP_HOST":            "0.0.0.0",
-				"APP_PORT":            "3000",
+				"APP_MODE":           "http",
+				"APP_HOST":           "0.0.0.0",
+				"APP_PORT":           "3000",
+				"MW_AUTH_SERVER_URL": "https://app.middleware.io",
 			},
-			wantErr: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Set environment
+			clearEnv()
+			defer clearEnv()
 			for k, v := range tt.envVars {
 				os.Setenv(k, v)
 			}
-			defer func() {
-				for k := range tt.envVars {
-					os.Unsetenv(k)
-				}
-			}()
 
-			// Load config
 			cfg, err := config.Load()
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("config.Load() error = %v, wantErr %v", err, tt.wantErr)
 			}
-
 			if tt.wantErr {
 				return
 			}
 
-			// Create server
-			srv := server.New(cfg)
-			if srv == nil {
+			if srv := server.New(cfg); srv == nil {
 				t.Fatal("Failed to create server")
-			}
-
-			// Check excluded tools if needed
-			if tt.checkExcluded {
-				if !cfg.IsToolExcluded("delete_dashboard") {
-					t.Error("Expected delete_dashboard to be excluded")
-				}
-				if !cfg.IsToolExcluded("create_alert") {
-					t.Error("Expected create_alert to be excluded")
-				}
 			}
 		})
 	}
 }
 
-func TestClientContextHandling(t *testing.T) {
-	client := middleware.NewClient("https://test.middleware.io", "test-key")
+// TestEndToEndAuthFlow walks the whole HTTP handler chain:
+//   - unauth request to /mcp returns 401 + WWW-Authenticate pointing at protected-resource metadata
+//   - the metadata URL serves the RFC 9728 doc
+//   - a request with a JWT carrying an `alias` claim passes the gate and the per-request
+//     middleware.Client built from ctx talks to the tenant base URL derived from it.
+func TestEndToEndAuthFlow(t *testing.T) {
+	cfg := &config.Config{
+		AppMode:               "http",
+		AppHost:               "localhost",
+		AppPort:               "0",
+		MCPServerURL:          "https://mcp.middleware.io/mcp",
+		AuthServerURL:         "https://app.middleware.io",
+		MCPScopes:             "mcp:read mcp:tools",
+		TenantBaseURLTemplate: "https://{alias}.middleware.io",
+	}
 
-	// Test that client respects context cancellation
+	// Spin up a fake tenant data plane.
+	var seenAuth string
+	tenant := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		seenAuth = r.Header.Get("Authorization")
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(middleware.ReportListResponse{Total: 0})
+	}))
+	defer tenant.Close()
+
+	// Point the template at the fake backend (no {alias} placeholder) so the derived
+	// URL routes there.
+	cfg.TenantBaseURLTemplate = tenant.URL
+
+	mux := http.NewServeMux()
+	mux.Handle("/.well-known/oauth-protected-resource/mcp", server.ProtectedResourceMetadataHandler(cfg))
+	mux.Handle("/mcp", server.RequireBearer(cfg, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Simulate a tool handler: build the per-request client from ctx and hit the tenant.
+		srv := server.New(cfg)
+		c := srv.Client(r.Context())
+		if _, err := c.GetDashboards(r.Context(), nil); err != nil {
+			http.Error(w, err.Error(), http.StatusBadGateway)
+			return
+		}
+		w.WriteHeader(http.StatusOK)
+	})))
+
+	httpSrv := httptest.NewServer(mux)
+	defer httpSrv.Close()
+
+	// 1. Unauthenticated request → 401 with proper WWW-Authenticate.
+	resp, err := http.Post(httpSrv.URL+"/mcp", "application/json", strings.NewReader(`{}`))
+	if err != nil {
+		t.Fatalf("unauth POST: %v", err)
+	}
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("status = %d, want 401", resp.StatusCode)
+	}
+	wa := resp.Header.Get("WWW-Authenticate")
+	if !strings.Contains(wa, "resource_metadata=") {
+		t.Errorf("WWW-Authenticate missing resource_metadata: %q", wa)
+	}
+	resp.Body.Close()
+
+	// 2. Fetch metadata.
+	resp, err = http.Get(httpSrv.URL + "/.well-known/oauth-protected-resource/mcp")
+	if err != nil || resp.StatusCode != http.StatusOK {
+		t.Fatalf("metadata fetch failed: %v %v", err, resp.StatusCode)
+	}
+	resp.Body.Close()
+
+	// 3. Authenticated request with JWT carrying the alias → tools/call hits the tenant.
+	token := makeJWT(map[string]any{"alias": "acme"})
+	req, _ := http.NewRequest(http.MethodPost, httpSrv.URL+"/mcp", strings.NewReader(`{}`))
+	req.Header.Set("Authorization", "Bearer "+token)
+	resp, err = http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("auth POST: %v", err)
+	}
+	if resp.StatusCode != http.StatusOK {
+		body := make([]byte, 1024)
+		n, _ := resp.Body.Read(body)
+		t.Fatalf("status = %d, want 200; body=%s", resp.StatusCode, string(body[:n]))
+	}
+	resp.Body.Close()
+	if seenAuth != "Bearer "+token {
+		t.Errorf("backend Authorization = %q, want %q", seenAuth, "Bearer "+token)
+	}
+}
+
+func TestClientContextHandling(t *testing.T) {
+	client := middleware.NewClient("https://test.middleware.io", "tok")
 	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Millisecond)
 	defer cancel()
 
-	// This should fail quickly due to context timeout
-	_, err := client.GetDashboards(ctx, nil)
-	if err == nil {
+	if _, err := client.GetDashboards(ctx, nil); err == nil {
 		t.Error("Expected error due to context timeout")
 	}
 }
 
-func TestMultipleServerInstances(t *testing.T) {
-	// Verify that multiple server instances can be created
-	// (useful for testing isolation)
-
-	os.Setenv("MIDDLEWARE_API_KEY", "test-key")
-	os.Setenv("MIDDLEWARE_BASE_URL", "https://test.middleware.io")
-	defer func() {
-		os.Unsetenv("MIDDLEWARE_API_KEY")
-		os.Unsetenv("MIDDLEWARE_BASE_URL")
-	}()
-
-	cfg, err := config.Load()
-	if err != nil {
-		t.Fatalf("Config load failed: %v", err)
-	}
-
-	srv1 := server.New(cfg)
-	srv2 := server.New(cfg)
-
-	if srv1 == nil || srv2 == nil {
-		t.Fatal("Failed to create multiple server instances")
-	}
-
-	// Both instances should be independent
+func makeJWT(claims map[string]any) string {
+	header := base64.RawURLEncoding.EncodeToString([]byte(`{"alg":"none","typ":"JWT"}`))
+	payloadBytes, _ := json.Marshal(claims)
+	payload := base64.RawURLEncoding.EncodeToString(payloadBytes)
+	return header + "." + payload + ".sig"
 }
-

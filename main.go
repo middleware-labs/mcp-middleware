@@ -30,15 +30,12 @@ func main() {
 		cancel()
 	}()
 
-	log.Printf("Middleware MCP Server v1.0.0")
-	log.Printf("Connected to: %s", cfg.MiddlewareBaseURL)
-	if len(cfg.ExcludedTools) > 0 {
-		log.Printf("Excluded tools: %v", getExcludedToolsList(cfg))
-	}
+	log.Printf("Middleware MCP Server v1.0.0 (mode=%s)", cfg.AppMode)
 
 	switch cfg.AppMode {
 	case "stdio":
 		log.Println("Starting MCP server in stdio mode...")
+		log.Println("Note: stdio mode has no auth path; tool calls will fail without HTTP-mode OAuth.")
 		if err := srv.RunStdioMode(ctx); err != nil {
 			log.Fatalf("Server error: %v", err)
 		}
@@ -53,12 +50,4 @@ func main() {
 	default:
 		log.Fatalf("Invalid APP_MODE: %s", cfg.AppMode)
 	}
-}
-
-func getExcludedToolsList(cfg *config.Config) []string {
-	tools := make([]string, 0, len(cfg.ExcludedTools))
-	for tool := range cfg.ExcludedTools {
-		tools = append(tools, tool)
-	}
-	return tools
 }

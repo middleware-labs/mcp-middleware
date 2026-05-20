@@ -1,0 +1,31 @@
+# Keep the build context small and free of secrets / artifacts.
+.git
+.gitignore
+.github
+.claude
+
+# Local config & secrets — never bake into the image.
+.env
+.env.*
+!.env.example
+
+# Build outputs / binaries
+mcp-middleware
+mcp-mw
+mock-auth-server
+mock-backend
+*.exe
+*.test
+.run/
+
+# Coverage / tool output
+coverage.*
+*.out
+
+# Docs & deploy assets (not needed to compile)
+docs/
+k8s/
+*.md
+Dockerfile
+.dockerignore
+docker-build.sh

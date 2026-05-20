@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-middleware
+  labels:
+    app: mcp-middleware
+spec:
+  type: ClusterIP
+  selector:
+    app: mcp-middleware
+  ports:
+    - name: http
+      port: 80
+      targetPort: http
+      protocol: TCP

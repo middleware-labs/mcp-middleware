@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strings"
 
@@ -9,11 +10,6 @@ import (
 )
 
 type Config struct {
-	// Middleware API Configuration
-	MiddlewareAPIKey   string
-	AuthorizationToken string
-	MiddlewareBaseURL  string
-
 	// Application Mode: stdio, http, sse
 	AppMode string
 
@@ -21,38 +17,42 @@ type Config struct {
 	AppHost string
 	AppPort string
 
-	// Tool Exclusion
-	ExcludedTools map[string]bool
+	// Public URI of the MCP endpoint, advertised in the RFC 9728 Protected Resource
+	// Metadata document. From MCP_SERVER_URL if set (use behind a proxy/ingress),
+	// otherwise derived from the listen address as http://<AppHost>:<AppPort>/mcp.
+	MCPServerURL string
+
+	// OAuth Authorization Server issuer (e.g. https://app.middleware.io).
+	// Advertised in the Protected Resource Metadata; Claude builds the AS metadata URL from it.
+	AuthServerURL string
+
+	// Space-separated scope list (e.g. "mcp:read mcp:tools").
+	MCPScopes string
+
+	// Template for the tenant data-plane base URL, with "{alias}" substituted by the
+	// access token's `alias` claim. Default "https://{alias}.middleware.io".
+	// For local testing, set to a fixed URL with no placeholder (e.g. "http://localhost:9100")
+	// to route every tenant at a mock backend.
+	TenantBaseURLTemplate string
 }
 
 func Load() (*Config, error) {
-	// Try to load .env file, but don't fail if it doesn't exist
 	_ = godotenv.Load()
 
 	cfg := &Config{
-		MiddlewareAPIKey:   os.Getenv("MIDDLEWARE_API_KEY"),
-		AuthorizationToken: os.Getenv("AUTHORIZATION"),
-		MiddlewareBaseURL:  os.Getenv("MIDDLEWARE_BASE_URL"),
-		AppMode:            getEnvOrDefault("APP_MODE", "stdio"),
-		AppHost:            getEnvOrDefault("APP_HOST", "localhost"),
-		AppPort:            getEnvOrDefault("APP_PORT", "8080"),
-		ExcludedTools:      make(map[string]bool),
+		AppMode:               getEnvOrDefault("APP_MODE", "http"),
+		AppHost:               getEnvOrDefault("APP_HOST", "localhost"),
+		AppPort:               getEnvOrDefault("APP_PORT", "8080"),
+		MCPServerURL:          strings.TrimRight(os.Getenv("MCP_SERVER_URL"), "/"),
+		AuthServerURL:         strings.TrimRight(os.Getenv("MW_AUTH_SERVER_URL"), "/"),
+		MCPScopes:             getEnvOrDefault("MCP_SCOPES", "mcp:read mcp:tools"),
+		TenantBaseURLTemplate: getEnvOrDefault("MW_TENANT_BASE_URL_TEMPLATE", "https://{alias}.middleware.io"),
 	}
 
-	if cfg.MiddlewareAPIKey == "" && cfg.AuthorizationToken == "" {
-		return nil, fmt.Errorf("MIDDLEWARE_API_KEY is required")
-	}
-	if cfg.MiddlewareBaseURL == "" {
-		return nil, fmt.Errorf("MIDDLEWARE_BASE_URL is required")
-	}
-
-	if excludedStr := os.Getenv("EXCLUDED_TOOLS"); excludedStr != "" {
-		for _, tool := range strings.Split(excludedStr, ",") {
-			tool = strings.TrimSpace(tool)
-			if tool != "" {
-				cfg.ExcludedTools[tool] = true
-			}
-		}
+	// MCP endpoint URL advertised in the metadata. Set MCP_SERVER_URL to the public URL
+	// when the server is behind a proxy/ingress; otherwise derive it from the listen address.
+	if cfg.MCPServerURL == "" {
+		cfg.MCPServerURL = fmt.Sprintf("http://%s:%s/mcp", cfg.AppHost, cfg.AppPort)
 	}
 
 	validModes := map[string]bool{"stdio": true, "http": true, "sse": true}
@@ -60,11 +60,16 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("invalid APP_MODE: %s (must be stdio, http, or sse)", cfg.AppMode)
 	}
 
-	return cfg, nil
-}
+	if cfg.AppMode != "stdio" {
+		if cfg.AuthServerURL == "" {
+			return nil, fmt.Errorf("MW_AUTH_SERVER_URL is required when APP_MODE=%s", cfg.AppMode)
+		}
+		if _, err := url.Parse(cfg.AuthServerURL); err != nil {
+			return nil, fmt.Errorf("MW_AUTH_SERVER_URL is not a valid URL: %w", err)
+		}
+	}
 
-func (c *Config) IsToolExcluded(toolName string) bool {
-	return c.ExcludedTools[toolName]
+	return cfg, nil
 }
 
 func getEnvOrDefault(key, defaultValue string) string {

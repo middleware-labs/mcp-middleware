@@ -1,0 +1,23 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mcp-middleware
+  labels:
+    app: mcp-middleware
+data:
+  APP_MODE: "http"
+  # Must bind 0.0.0.0 inside the container to be reachable from the Service.
+  APP_HOST: "0.0.0.0"
+  APP_PORT: "8080"
+  MCP_SCOPES: "mcp:read mcp:tools"
+
+  # OAuth Authorization Server issuer advertised in the metadata (required in http mode).
+  MW_AUTH_SERVER_URL: "https://app.middleware.io"
+
+  # Tenant data-plane URL template; {alias} is replaced by the token's alias claim.
+  MW_TENANT_BASE_URL_TEMPLATE: "https://{alias}.middleware.io"
+
+  # Public MCP endpoint URL advertised in the Protected Resource Metadata. Behind an
+  # Ingress this MUST be the public URL Claude reaches (matching the Ingress host below),
+  # not the in-cluster bind address. If unset, it falls back to http://APP_HOST:APP_PORT/mcp.
+  MCP_SERVER_URL: "https://mcp.middleware.io/mcp"

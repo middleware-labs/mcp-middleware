@@ -39,7 +39,7 @@ func HandleListWidgets(s ServerInterface, ctx context.Context, req mcp.CallToolR
 		DisplayScope: input.DisplayScope,
 	}
 
-	result, err := s.Client().GetWidgets(ctx, params)
+	result, err := s.Client(ctx).GetWidgets(ctx, params)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get widgets: %w", err)
 	}
@@ -383,7 +383,7 @@ func HandleCreateWidget(s ServerInterface, ctx context.Context, req mcp.CallTool
 		Layout:          layout,
 	}
 
-	result, err := s.Client().CreateWidget(ctx, widget)
+	result, err := s.Client(ctx).CreateWidget(ctx, widget)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create widget: %w", err)
 	}
@@ -510,7 +510,7 @@ func HandleUpdateWidget(s ServerInterface, ctx context.Context, req mcp.CallTool
 		widget.Layout = layout
 	}
 
-	result, err := s.Client().UpdateWidget(ctx, widget)
+	result, err := s.Client(ctx).UpdateWidget(ctx, widget)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update widget: %w", err)
 	}
@@ -540,7 +540,7 @@ func HandleDeleteWidget(s ServerInterface, ctx context.Context, req mcp.CallTool
 		return nil, fmt.Errorf("failed to parse input: %w", err)
 	}
 
-	err = s.Client().DeleteWidget(ctx, input.BuilderID)
+	err = s.Client(ctx).DeleteWidget(ctx, input.BuilderID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to delete widget: %w", err)
 	}
@@ -585,7 +585,7 @@ func HandleGetWidgetData(s ServerInterface, ctx context.Context, req mcp.CallToo
 		UseV2:         input.UseV2,
 	}
 
-	result, err := s.Client().GetWidgetData(ctx, widget)
+	result, err := s.Client(ctx).GetWidgetData(ctx, widget)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get widget data: %w", err)
 	}
@@ -637,7 +637,7 @@ func HandleGetMultiWidgetData(s ServerInterface, ctx context.Context, req mcp.Ca
 		}
 	}
 
-	result, err := s.Client().GetMultiWidgetData(ctx, widgets)
+	result, err := s.Client(ctx).GetMultiWidgetData(ctx, widgets)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get multi widget data: %w", err)
 	}
@@ -691,7 +691,7 @@ func HandleUpdateWidgetLayouts(s ServerInterface, ctx context.Context, req mcp.C
 		Layouts: layouts,
 	}
 
-	err = s.Client().UpdateWidgetLayouts(ctx, layoutReq)
+	err = s.Client(ctx).UpdateWidgetLayouts(ctx, layoutReq)
 	if err != nil {
 		return nil, fmt.Errorf("failed to update widget layouts: %w", err)
 	}
