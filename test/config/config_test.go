@@ -13,7 +13,7 @@ func clearEnv(t *testing.T) {
 	t.Helper()
 	for _, k := range []string{
 		"APP_MODE", "APP_HOST", "APP_PORT",
-		"MCP_SERVER_URL", "MW_AUTH_SERVER_URL", "MCP_SCOPES",
+		"MCP_SERVER_URL", "MW_AUTH_SERVER_URL",
 		"MW_TENANT_BASE_URL_TEMPLATE",
 	} {
 		os.Unsetenv(k)
@@ -38,9 +38,6 @@ func TestLoad_Defaults(t *testing.T) {
 	}
 	if cfg.AppPort != "8080" {
 		t.Errorf("AppPort = %q, want 8080", cfg.AppPort)
-	}
-	if cfg.MCPScopes != "mcp:read mcp:tools" {
-		t.Errorf("MCPScopes = %q, want default", cfg.MCPScopes)
 	}
 }
 
@@ -152,13 +149,12 @@ func TestLoad_InvalidAppMode(t *testing.T) {
 	}
 }
 
-func TestLoad_OverrideHostPortAndScopes(t *testing.T) {
+func TestLoad_OverrideHostPort(t *testing.T) {
 	clearEnv(t)
 	defer clearEnv(t)
 	os.Setenv("APP_MODE", "http")
 	os.Setenv("APP_HOST", "0.0.0.0")
 	os.Setenv("APP_PORT", "9090")
-	os.Setenv("MCP_SCOPES", "mcp:admin")
 	os.Setenv("MW_AUTH_SERVER_URL", "https://app.middleware.io")
 
 	cfg, err := config.Load()
@@ -167,8 +163,5 @@ func TestLoad_OverrideHostPortAndScopes(t *testing.T) {
 	}
 	if cfg.AppHost != "0.0.0.0" || cfg.AppPort != "9090" {
 		t.Errorf("host/port not picked up: %q %q", cfg.AppHost, cfg.AppPort)
-	}
-	if cfg.MCPScopes != "mcp:admin" {
-		t.Errorf("scopes override not honored: %q", cfg.MCPScopes)
 	}
 }

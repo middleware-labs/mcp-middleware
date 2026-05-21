@@ -21,7 +21,6 @@ func newTestCfg() *config.Config {
 		AppPort:               "8080",
 		MCPServerURL:          "https://mcp.middleware.io/mcp",
 		AuthServerURL:         "https://app.middleware.io",
-		MCPScopes:             "mcp:read mcp:tools",
 		TenantBaseURLTemplate: "https://{alias}.middleware.io",
 	}
 }

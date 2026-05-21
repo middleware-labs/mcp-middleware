@@ -9,7 +9,7 @@ data:
   # Must bind 0.0.0.0 inside the container to be reachable from the Service.
   APP_HOST: "0.0.0.0"
   APP_PORT: "8080"
-  MCP_SCOPES: "mcp:read mcp:tools"
+  # Note: OAuth scopes are derived automatically from the tool catalog (per category).
 
   # OAuth Authorization Server issuer advertised in the metadata (required in http mode).
   MW_AUTH_SERVER_URL: "https://app.middleware.io"

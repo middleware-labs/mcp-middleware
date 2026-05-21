@@ -80,9 +80,13 @@ func parseExcludedTools(rawQuery string) map[string]struct{} {
 // document for this MCP server. Claude fetches this after a 401 to discover the AS.
 func ProtectedResourceMetadataHandler(cfg *config.Config) http.HandlerFunc {
 	doc := map[string]any{
-		"resource":                 cfg.MCPServerURL,
-		"authorization_servers":    []string{cfg.AuthServerURL},
-		"scopes_supported":         strings.Fields(cfg.MCPScopes),
+		"resource":              cfg.MCPServerURL,
+		"authorization_servers": []string{cfg.AuthServerURL},
+		// Flat list of scope tokens (RFC 9728 — kept as strings for OAuth clients).
+		"scopes_supported": CatalogScopes(),
+		// Structured companion: scopes grouped by category, each tool with its scope +
+		// description, for rendering a consent screen.
+		"scope_categories":         CatalogScopeCategories(),
 		"bearer_methods_supported": []string{"header"},
 		"resource_name":            "Middleware MCP Server",
 	}
@@ -100,17 +104,18 @@ func ProtectedResourceMetadataHandler(cfg *config.Config) http.HandlerFunc {
 // the Protected Resource Metadata document, per the MCP authorization spec.
 func RequireBearer(cfg *config.Config, next http.Handler) http.Handler {
 	resourceMetadataURL := buildResourceMetadataURL(cfg)
+	scopes := CatalogScopeString()
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		token := extractBearerToken(r.Header.Get("Authorization"))
 		if token == "" {
-			writeUnauthorized(w, resourceMetadataURL, cfg.MCPScopes, "", "")
+			writeUnauthorized(w, resourceMetadataURL, scopes, "", "")
 			return
 		}
 
 		tenantURL, err := tenantBaseURLFromJWT(token, cfg.TenantBaseURLTemplate)
 		if err != nil {
-			writeUnauthorized(w, resourceMetadataURL, cfg.MCPScopes, "invalid_token", err.Error())
+			writeUnauthorized(w, resourceMetadataURL, scopes, "invalid_token", err.Error())
 			return
 		}
 

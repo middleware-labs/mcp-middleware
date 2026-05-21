@@ -26,9 +26,6 @@ type Config struct {
 	// Advertised in the Protected Resource Metadata; Claude builds the AS metadata URL from it.
 	AuthServerURL string
 
-	// Space-separated scope list (e.g. "mcp:read mcp:tools").
-	MCPScopes string
-
 	// Template for the tenant data-plane base URL, with "{alias}" substituted by the
 	// access token's `alias` claim. Default "https://{alias}.middleware.io".
 	// For local testing, set to a fixed URL with no placeholder (e.g. "http://localhost:9100")
@@ -45,7 +42,6 @@ func Load() (*Config, error) {
 		AppPort:               getEnvOrDefault("APP_PORT", "8080"),
 		MCPServerURL:          strings.TrimRight(os.Getenv("MCP_SERVER_URL"), "/"),
 		AuthServerURL:         strings.TrimRight(os.Getenv("MW_AUTH_SERVER_URL"), "/"),
-		MCPScopes:             getEnvOrDefault("MCP_SCOPES", "mcp:read mcp:tools"),
 		TenantBaseURLTemplate: getEnvOrDefault("MW_TENANT_BASE_URL_TEMPLATE", "https://{alias}.middleware.io"),
 	}
 

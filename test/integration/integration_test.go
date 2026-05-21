@@ -19,7 +19,7 @@ import (
 func clearEnv() {
 	for _, k := range []string{
 		"APP_MODE", "APP_HOST", "APP_PORT",
-		"MCP_SERVER_URL", "MW_AUTH_SERVER_URL", "MCP_SCOPES",
+		"MCP_SERVER_URL", "MW_AUTH_SERVER_URL",
 		"MW_TENANT_BASE_URL_TEMPLATE",
 	} {
 		os.Unsetenv(k)
@@ -115,7 +115,6 @@ func TestEndToEndAuthFlow(t *testing.T) {
 		AppPort:               "0",
 		MCPServerURL:          "https://mcp.middleware.io/mcp",
 		AuthServerURL:         "https://app.middleware.io",
-		MCPScopes:             "mcp:read mcp:tools",
 		TenantBaseURLTemplate: "https://{alias}.middleware.io",
 	}
 
