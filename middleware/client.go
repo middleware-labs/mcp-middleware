@@ -45,7 +45,7 @@ func (c *Client) doRequest(ctx context.Context, method, path string, body any, r
 		if err != nil {
 			return fmt.Errorf("failed to marshal request body: %w", err)
 		}
-		log.Printf("Request Body: %s\n", string(jsonData))
+		log.Printf("Request Body: %s", string(jsonData))
 		reqBody = bytes.NewBuffer(jsonData)
 	}
 
