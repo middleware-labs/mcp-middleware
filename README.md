@@ -2,7 +2,119 @@
 
 A robust and modular [Model Context Protocol (MCP)](https://modelcontextprotocol.io) server for [Middleware.io](https://middleware.io). This server enables AI assistants like Claude to interact with Middleware's observability platform for monitoring, dashboards, widgets, metrics, and alerts.
 
-## Available Tools
+---
+
+## ⚠️ This repository is archived
+
+**This self-hosted MCP server is no longer actively maintained.** Middleware now offers a
+**hosted remote MCP server** that requires no build step, no API key management, and no local
+process to keep running — and it ships more tools than this repository.
+
+👉 **Use the remote MCP server instead:** [`https://mcp.middleware.io/mcp`](https://mcp.middleware.io/mcp)
+📚 **Docs:** [Middleware MCP Server overview](https://docs.middleware.io/opsai/mcp-server/overview)
+
+### Why move to the remote server?
+
+| | Remote MCP server (recommended) | This repo (archived) |
+|---|---|---|
+| Setup | One-line client config | Clone, install Go, build, configure `.env` |
+| Auth | Browser sign-in (OAuth), token handled for you | Manually manage `MIDDLEWARE_API_KEY` |
+| Project selection | Pick your project during authorization | Hardcoded via `MIDDLEWARE_BASE_URL` |
+| Tools | 24 tools (incl. **Logs** and **RUM**) | 21 tools |
+| Updates | Automatic, server-side | You rebuild and redeploy |
+| Runtime | Nothing to run locally | Local binary per machine |
+
+### Connect the remote server
+
+All clients point at the same endpoint: `https://mcp.middleware.io/mcp`
+
+**Claude Code**
+```bash
+claude mcp add --transport http middleware https://mcp.middleware.io/mcp
+```
+Then run `/mcp`, select **middleware**, and choose **Authenticate**.
+
+**Claude Desktop** — add to `~/.claude.json`:
+```json
+{
+  "mcpServers": {
+    "middleware": {
+      "type": "http",
+      "url": "https://mcp.middleware.io/mcp"
+    }
+  }
+}
+```
+
+**Cursor** — add to `~/.cursor/mcp.json` (or project-level `.cursor/mcp.json`):
+```json
+{
+  "mcpServers": {
+    "middleware": {
+      "url": "https://mcp.middleware.io/mcp"
+    }
+  }
+}
+```
+
+**VS Code** — add to `.vscode/mcp.json` (or use **MCP: Add Server → HTTP** from the Command Palette):
+```json
+{
+  "servers": {
+    "middleware": {
+      "type": "http",
+      "url": "https://mcp.middleware.io/mcp"
+    }
+  }
+}
+```
+
+**Windsurf** — add to `~/.codeium/windsurf/mcp_config.json`:
+```json
+{
+  "mcpServers": {
+    "middleware": {
+      "serverUrl": "https://mcp.middleware.io/mcp"
+    }
+  }
+}
+```
+
+**Gemini CLI**
+```bash
+gemini mcp add --transport http middleware https://mcp.middleware.io/mcp
+```
+
+**Codex CLI**
+```bash
+codex mcp add middleware --url https://mcp.middleware.io/mcp
+```
+
+Other MCP-compatible clients (Antigravity and anything supporting remote HTTP servers with OAuth)
+work the same way — point them at the endpoint URL.
+
+**Authentication flow:** configure the endpoint → your client opens a browser → sign in to
+Middleware → pick the project → approve access. The sign-in persists across sessions, so you only
+do this once.
+
+**Read-only access:** append `exclude_tools` to the URL to strip out write operations, e.g.
+
+```
+https://mcp.middleware.io/mcp?exclude_tools=create_dashboard,update_dashboard,delete_dashboard,clone_dashboard,set_dashboard_favorite,create_widget,update_widget,delete_widget,update_widget_layouts
+```
+
+See [Setup](https://docs.middleware.io/opsai/mcp-server/setup) and
+[MCP Tools](https://docs.middleware.io/opsai/mcp-server/tools) for the full reference.
+
+---
+
+> The rest of this README documents the archived self-hosted server. It is kept for reference and
+> for anyone who must run the server inside their own network. New integrations should use the
+> remote MCP server above.
+
+## Available Tools (self-hosted, archived)
+
+_The remote MCP server exposes these plus Logs and RUM tools — see [MCP Tools](https://docs.middleware.io/opsai/mcp-server/tools)._
 
 ### Dashboard Management (7 tools)
 - `list_dashboards` - List all dashboards with filtering and pagination
@@ -35,9 +147,9 @@ A robust and modular [Model Context Protocol (MCP)](https://modelcontextprotocol
 - `list_errors` - List all errors/incidents with filtering and pagination (includes clickable `issue_url` for each incident)
 - `get_error_details` - Get detailed information about a specific error/incident by fingerprint
 
-## Quick Start
+## Quick Start (self-hosted, archived)
 
-Get up and running in 5 minutes!
+Get up and running in 5 minutes. **For new setups, prefer the [remote MCP server](#-this-repository-is-archived) — it needs none of these steps.**
 
 ### Step 1: Get Your API Key
 
@@ -482,13 +594,9 @@ This project follows Go best practices:
 
 ## Contributing
 
-Contributions are welcome! Please:
-
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+This repository is archived and is no longer accepting feature work. If you need a change,
+please raise it against the [remote MCP server](https://docs.middleware.io/opsai/mcp-server/overview)
+by contacting [support@middleware.io](mailto:support@middleware.io).
 
 ## License
 
@@ -498,7 +606,8 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 For issues and questions:
 - **Middleware Support**: [support@middleware.io](mailto:support@middleware.io)
-- **Documentation**: See README.md for full documentation
+- **Remote MCP server docs**: [docs.middleware.io/opsai/mcp-server/overview](https://docs.middleware.io/opsai/mcp-server/overview)
+- **Self-hosted (archived) docs**: this README
 
 ---
 
